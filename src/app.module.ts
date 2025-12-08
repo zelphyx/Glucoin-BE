@@ -5,12 +5,16 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { DoctorsModule } from './doctors/doctors.module';
+import { BookingModule } from './booking/booking.module';
 import { PrismaService } from './prisma.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     AuthModule,
+    DoctorsModule,
+    BookingModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

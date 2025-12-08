@@ -1,20 +1,51 @@
 import {
   IsString,
   IsNotEmpty,
-  IsNumber,
   IsBoolean,
   IsOptional,
   IsUUID,
+  IsArray,
+  ValidateNested,
+  IsEnum,
+  Matches,
+  IsInt,
   Min,
-  Max,
-  IsDecimal,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class CreateDoctorDto {
+export enum DayOfWeek {
+  MONDAY = 'MONDAY',
+  TUESDAY = 'TUESDAY',
+  WEDNESDAY = 'WEDNESDAY',
+  THURSDAY = 'THURSDAY',
+  FRIDAY = 'FRIDAY',
+  SATURDAY = 'SATURDAY',
+  SUNDAY = 'SUNDAY',
+}
 
-  @IsUUID()
+export class CreateScheduleDto {
+  @IsEnum(DayOfWeek)
+  day_of_week: DayOfWeek;
+
   @IsString()
+  @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, {
+    message: 'time_slot must be in format HH:mm (e.g., 09:00, 14:30)',
+  })
+  time_slot: string;
+
+  @IsInt()
+  @Min(15)
+  @IsOptional()
+  duration_minutes?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  is_active?: boolean;
+}
+
+export class CreateDoctorDto {
+  @IsUUID()
+  @IsNotEmpty()
   user_id: string;
 
   @IsString()
@@ -23,44 +54,19 @@ export class CreateDoctorDto {
 
   @IsString()
   @IsNotEmpty()
-  license_number: string;
+  alamat_praktek: string;
 
   @IsString()
   @IsNotEmpty()
-  qualifications: string;
-
-  @IsNumber()
-  @IsNotEmpty()
-  years_of_experience: number;
-
-  @IsDecimal()
-  @Type(() => Number)
-  @Min(0)
-  @IsOptional()
-  consultation_fee_online?: number;
-
-  @IsNumber()
-  @Type(() => Number)
-  @Min(0)
-  @Max(5)
-  @IsOptional()
-  rating?: number;
-
-  @IsDecimal()
-  @Min(0)
-  @IsOptional()
-  consultation_fee_offline?: number;
-
-  @IsNumber()
-  @Min(0)
-  @IsOptional()
-  total_patients?: number;
-
-  @IsString()
-  @IsOptional()
-  bio?: string;
+  price_range: string;
 
   @IsBoolean()
   @IsOptional()
   is_available?: boolean;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateScheduleDto)
+  @IsOptional()
+  schedules?: CreateScheduleDto[];
 }
