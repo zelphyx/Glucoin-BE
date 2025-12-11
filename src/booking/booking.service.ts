@@ -3,15 +3,22 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingDto, CancelBookingDto, BookingStatus } from './dto/update-booking.dto';
 import { DayOfWeek } from '@glucoin/prisma';
+import { PaymentService } from '../payment/payment.service';
 
 @Injectable()
 export class BookingService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => PaymentService))
+    private paymentService: PaymentService,
+  ) {}
 
   async create(userId: string, createBookingDto: CreateBookingDto) {
     const { doctor_id, schedule_id, booking_date, ...bookingData } = createBookingDto;
@@ -57,13 +64,13 @@ export class BookingService {
       );
     }
 
-    // 5. Check if this schedule is already booked for this date
+    // 5. Check if this schedule is already booked for this date (exclude cancelled and expired)
     const existingBooking = await this.prisma.booking.findFirst({
       where: {
         schedule_id: schedule_id,
         booking_date: bookingDateObj,
         status: {
-          notIn: ['CANCELLED'],
+          notIn: ['CANCELLED', 'EXPIRED'],
         },
       },
     });
@@ -72,13 +79,15 @@ export class BookingService {
       throw new ConflictException('This time slot is already booked for this date');
     }
 
-    // 6. Create the booking
+    // 6. Create the booking with PENDING_PAYMENT status
     const booking = await this.prisma.booking.create({
       data: {
         user_id: userId,
         doctor_id: doctor_id,
         schedule_id: schedule_id,
         booking_date: bookingDateObj,
+        status: 'PENDING_PAYMENT',
+        payment_status: 'PENDING',
         ...bookingData,
       },
       include: {
@@ -106,9 +115,19 @@ export class BookingService {
       },
     });
 
+    // 7. Auto create payment and get Midtrans snap token
+    const paymentResult = await this.paymentService.createPayment(booking.id);
+
     return {
-      message: 'Booking created successfully',
+      message: 'Booking created successfully. Please complete payment.',
       booking: this.formatBookingResponse(booking),
+      payment: {
+        order_id: paymentResult.payment.order_id,
+        amount: paymentResult.payment.amount,
+        expiry_time: paymentResult.payment.expiry_time,
+        snap_token: paymentResult.snap_token,
+        snap_redirect_url: paymentResult.snap_redirect_url,
+      },
     };
   }
 
@@ -370,17 +389,19 @@ export class BookingService {
       orderBy: { time_slot: 'asc' },
     });
 
-    // Get all bookings for this doctor on this date (excluding cancelled)
+    // Get all bookings for this doctor on this date (excluding cancelled and expired)
     const existingBookings = await this.prisma.booking.findMany({
       where: {
         doctor_id: doctorId,
         booking_date: bookingDate,
         status: {
-          notIn: ['CANCELLED'],
+          notIn: ['CANCELLED', 'EXPIRED'],
         },
       },
       select: {
         schedule_id: true,
+        status: true,
+        payment_status: true,
       },
     });
 
@@ -421,6 +442,23 @@ export class BookingService {
       ? 'Langsung ke Tempat' 
       : 'Online';
 
+    const statusLabels: Record<string, string> = {
+      PENDING_PAYMENT: 'Menunggu Pembayaran',
+      PENDING: 'Menunggu Konfirmasi',
+      CONFIRMED: 'Dikonfirmasi',
+      COMPLETED: 'Selesai',
+      CANCELLED: 'Dibatalkan',
+      EXPIRED: 'Kadaluarsa',
+    };
+
+    const paymentStatusLabels: Record<string, string> = {
+      PENDING: 'Menunggu Pembayaran',
+      PAID: 'Sudah Dibayar',
+      FAILED: 'Gagal',
+      EXPIRED: 'Kadaluarsa',
+      REFUNDED: 'Dikembalikan',
+    };
+
     return {
       id: booking.id,
       booking_date: booking.booking_date,
@@ -431,6 +469,9 @@ export class BookingService {
       consultation_type_label: consultationType,
       consultation_fee: booking.consultation_fee,
       status: booking.status,
+      status_label: statusLabels[booking.status] || booking.status,
+      payment_status: booking.payment_status,
+      payment_status_label: paymentStatusLabels[booking.payment_status] || booking.payment_status,
       notes: booking.notes,
       cancellation_reason: booking.cancellation_reason,
       created_at: booking.created_at,

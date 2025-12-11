@@ -83,7 +83,8 @@ model Booking {
   duration_minutes  Int           // Durasi dalam menit (misal: 120)
   consultation_type ConsultationType
   consultation_fee  Decimal       // Biaya konsultasi
-  status            BookingStatus @default(PENDING)
+  status            BookingStatus @default(PENDING_PAYMENT)
+  payment_status    PaymentStatus @default(PENDING)
   notes             String?       // Catatan tambahan dari user
   cancellation_reason String?     // Alasan pembatalan (jika ada)
   created_at        DateTime      @default(now())
@@ -92,11 +93,38 @@ model Booking {
   user     User           @relation(fields: [user_id], references: [id])
   doctor   Doctor         @relation(fields: [doctor_id], references: [id])
   schedule DoctorSchedule @relation(fields: [schedule_id], references: [id])
+  payment  Payment?
 
   @@unique([schedule_id, booking_date]) // Satu slot hanya bisa di-booking sekali per tanggal
   @@index([user_id])
   @@index([doctor_id])
   @@index([booking_date])
+}
+
+model Payment {
+  id                  String        @id @default(uuid())
+  booking_id          String        @unique
+  order_id            String        @unique // Midtrans order ID
+  amount              Decimal
+  payment_type        String?       // bank_transfer, gopay, etc
+  transaction_id      String?       // Midtrans transaction ID
+  transaction_status  String?       // capture, settlement, pending, deny, cancel, expire
+  transaction_time    DateTime?
+  snap_token          String?       // Midtrans Snap token
+  snap_redirect_url   String?       // Midtrans Snap redirect URL
+  payment_url         String?       // URL untuk pembayaran
+  va_number           String?       // Virtual account number (jika bank transfer)
+  bank                String?       // Bank name (jika bank transfer)
+  expiry_time         DateTime?
+  status              PaymentStatus @default(PENDING)
+  raw_response        String?       // JSON response dari Midtrans
+  created_at          DateTime      @default(now())
+  updated_at          DateTime      @updatedAt
+
+  booking Booking @relation(fields: [booking_id], references: [id])
+
+  @@index([order_id])
+  @@index([transaction_id])
 }
 
 enum DayOfWeek {
@@ -115,10 +143,20 @@ enum ConsultationType {
 }
 
 enum BookingStatus {
-  PENDING
-  CONFIRMED
-  COMPLETED
-  CANCELLED
+  PENDING_PAYMENT  // Menunggu pembayaran
+  PENDING          // Sudah bayar, menunggu konfirmasi dokter
+  CONFIRMED        // Dikonfirmasi dokter
+  COMPLETED        // Selesai konsultasi
+  CANCELLED        // Dibatalkan
+  EXPIRED          // Pembayaran kadaluarsa
+}
+
+enum PaymentStatus {
+  PENDING          // Menunggu pembayaran
+  PAID             // Sudah dibayar
+  FAILED           // Gagal
+  EXPIRED          // Kadaluarsa
+  REFUNDED         // Dikembalikan
 }
 
 enum UserRole {
