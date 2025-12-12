@@ -59,9 +59,40 @@ export class PaymentController {
     const transactionStatus = req.query.transaction_status;
     
     return {
-      message: 'Payment process completed',
+      success: true,
+      message: 'Pembayaran berhasil!',
       order_id: orderId,
       status: transactionStatus,
+    };
+  }
+
+  // Payment pending page (redirect from Midtrans when payment not completed)
+  @Get('pending')
+  paymentPending(@Req() req: any) {
+    const orderId = req.query.order_id;
+    const transactionStatus = req.query.transaction_status;
+    
+    return {
+      success: true,
+      message: 'Menunggu pembayaran. Silakan selesaikan pembayaran Anda.',
+      order_id: orderId,
+      status: transactionStatus || 'pending',
+    };
+  }
+
+  // Payment error page (redirect from Midtrans when payment failed)
+  @Get('error')
+  paymentError(@Req() req: any) {
+    const orderId = req.query.order_id;
+    const transactionStatus = req.query.transaction_status;
+    const statusMessage = req.query.status_message;
+    
+    return {
+      success: false,
+      message: 'Pembayaran gagal. Silakan coba lagi.',
+      order_id: orderId,
+      status: transactionStatus || 'error',
+      error: statusMessage,
     };
   }
 }

@@ -689,9 +689,11 @@ export class MarketplaceService {
     if (updateDto.shipping_status) {
       updateData.shipping_status = updateDto.shipping_status;
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
       if (updateDto.shipping_status === 'SHIPPED') {
         updateData.shipped_at = new Date();
         updateData.status = 'SHIPPED';
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
       } else if (updateDto.shipping_status === 'DELIVERED') {
         updateData.delivered_at = new Date();
         updateData.status = 'DELIVERED';
