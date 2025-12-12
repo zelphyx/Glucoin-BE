@@ -169,3 +169,184 @@ enum Gender {
   MALE
   FEMALE
 }
+
+// ============= MARKETPLACE MODELS =============
+
+model Product {
+  id                String      @id @default(uuid())
+  name              String
+  description       String
+  price             Decimal     // Harga asli
+  discount_percent  Int         @default(0) // Diskon dalam persen (0-100)
+  final_price       Decimal     // Harga setelah diskon
+  rating            Decimal     @default(0) // Rating 0-5
+  rating_count      Int         @default(0) // Jumlah rating
+  quantity          Int         @default(0) // Stok produk
+  image_url         String?
+  category          ProductCategory
+  is_active         Boolean     @default(true)
+  created_at        DateTime    @default(now())
+  updated_at        DateTime    @updatedAt
+
+  cart_items   CartItem[]
+  order_items  OrderItem[]
+  reviews      ProductReview[]
+
+  @@index([category])
+  @@index([is_active])
+}
+
+model ProductReview {
+  id          String   @id @default(uuid())
+  product_id  String
+  user_id     String
+  rating      Int      // 1-5
+  comment     String?
+  created_at  DateTime @default(now())
+
+  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@unique([product_id, user_id]) // 1 user hanya bisa review 1x per produk
+  @@index([product_id])
+}
+
+model Cart {
+  id          String     @id @default(uuid())
+  user_id     String     @unique
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @updatedAt
+
+  items CartItem[]
+
+  @@index([user_id])
+}
+
+model CartItem {
+  id          String   @id @default(uuid())
+  cart_id     String
+  product_id  String
+  quantity    Int      @default(1)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  cart    Cart    @relation(fields: [cart_id], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@unique([cart_id, product_id]) // 1 produk hanya 1 entry per cart
+  @@index([cart_id])
+  @@index([product_id])
+}
+
+model ShippingAddress {
+  id              String   @id @default(uuid())
+  user_id         String
+  recipient_name  String   // Nama penerima
+  phone_number    String
+  address         String   // Alamat lengkap
+  city            String
+  province        String
+  postal_code     String
+  is_default      Boolean  @default(false)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  orders Order[]
+
+  @@index([user_id])
+}
+
+model Order {
+  id                  String        @id @default(uuid())
+  user_id             String
+  order_number        String        @unique // Format: ORD-YYYYMMDD-XXXX
+  shipping_address_id String
+  subtotal            Decimal       // Total harga produk
+  shipping_cost       Decimal       // Ongkir
+  discount_amount     Decimal       @default(0) // Potongan diskon
+  total_amount        Decimal       // Grand total
+  status              OrderStatus   @default(PENDING_PAYMENT)
+  payment_status      PaymentStatus @default(PENDING)
+  shipping_status     ShippingStatus @default(NOT_SHIPPED)
+  tracking_number     String?       // Nomor resi pengiriman
+  courier             String?       // Nama kurir (JNE, JNT, SiCepat, dll)
+  notes               String?       // Catatan order
+  paid_at             DateTime?
+  shipped_at          DateTime?
+  delivered_at        DateTime?
+  created_at          DateTime      @default(now())
+  updated_at          DateTime      @updatedAt
+
+  shipping_address ShippingAddress   @relation(fields: [shipping_address_id], references: [id])
+  items            OrderItem[]
+  payment          OrderPayment?
+
+  @@index([user_id])
+  @@index([order_number])
+  @@index([status])
+}
+
+model OrderItem {
+  id              String   @id @default(uuid())
+  order_id        String
+  product_id      String
+  product_name    String   // Snapshot nama produk saat order
+  product_price   Decimal  // Snapshot harga saat order
+  quantity        Int
+  subtotal        Decimal  // product_price * quantity
+  created_at      DateTime @default(now())
+
+  order   Order   @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [product_id], references: [id])
+
+  @@index([order_id])
+}
+
+model OrderPayment {
+  id                  String        @id @default(uuid())
+  order_id            String        @unique
+  order_payment_id    String        @unique // Midtrans order ID
+  amount              Decimal
+  payment_type        String?
+  transaction_id      String?
+  transaction_status  String?
+  transaction_time    DateTime?
+  snap_token          String?
+  snap_redirect_url   String?
+  va_number           String?
+  bank                String?
+  expiry_time         DateTime?
+  status              PaymentStatus @default(PENDING)
+  raw_response        String?
+  created_at          DateTime      @default(now())
+  updated_at          DateTime      @updatedAt
+
+  order Order @relation(fields: [order_id], references: [id])
+
+  @@index([order_payment_id])
+  @@index([transaction_id])
+}
+
+enum ProductCategory {
+  SUPPLEMENT     // Suplemen kesehatan
+  MEDICINE       // Obat-obatan
+  MEDICAL_DEVICE // Alat kesehatan (glukometer, dll)
+  FOOD_DRINK     // Makanan & minuman sehat
+  OTHER          // Lainnya
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT  // Menunggu pembayaran
+  PROCESSING       // Sedang diproses
+  SHIPPED          // Sudah dikirim
+  DELIVERED        // Sudah diterima
+  COMPLETED        // Selesai
+  CANCELLED        // Dibatalkan
+}
+
+enum ShippingStatus {
+  NOT_SHIPPED     // Belum dikirim
+  PROCESSING      // Sedang dikemas
+  SHIPPED         // Sudah dikirim
+  IN_TRANSIT      // Dalam perjalanan
+  DELIVERED       // Sudah diterima
+}

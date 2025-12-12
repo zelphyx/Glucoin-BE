@@ -3,7 +3,7 @@ import { Injectable, UnauthorizedException, ConflictException, BadRequestExcepti
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-import { Resend } from 'resend';
+import * as nodemailer from 'nodemailer';
 import { PrismaService } from '../prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -14,14 +14,22 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
-  private resend: Resend;
+  private transporter: nodemailer.Transporter;
 
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
   ) {
-    // Setup Resend client
-    this.resend = new Resend(process.env.RESEND_API_KEY);
+    // Setup nodemailer transporter untuk Gmail SMTP
+    this.transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.SMTP_EMAIL,
+        pass: process.env.SMTP_PASSWORD,
+      },
+    });
   }
 
   async register(registerDto: RegisterDto) {
@@ -284,8 +292,8 @@ export class AuthService {
       console.log('📧 To:', email);
       console.log('🔗 Reset URL:', resetUrl);
 
-      const { data, error } = await this.resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL || 'Glucoin <onboarding@resend.dev>',
+      const info = await this.transporter.sendMail({
+        from: `"Glucoin" <${process.env.SMTP_EMAIL}>`,
         to: email,
         subject: 'Reset Password - Glucoin',
         html: `
@@ -311,13 +319,8 @@ export class AuthService {
         `,
       });
 
-      if (error) {
-        console.error('❌ Resend API Error:', JSON.stringify(error, null, 2));
-        throw new Error(`Resend API Error: ${error.message || JSON.stringify(error)}`);
-      }
-
       console.log('✅ Password reset email sent successfully!');
-      console.log('📬 Email ID:', data?.id);
+      console.log('📬 Message ID:', info.messageId);
     } catch (error) {
       console.error('❌ Failed to send password reset email:', error);
       console.error('Error details:', error.message || error);
@@ -329,11 +332,10 @@ export class AuthService {
     try {
       console.log('🔄 Attempting to send OTP email...');
       console.log('📧 To:', email);
-      console.log('🔑 API Key:', process.env.RESEND_API_KEY ? 'Set ✓' : 'Missing ✗');
-      console.log('📤 From:', process.env.RESEND_FROM_EMAIL || 'Glucoin <onboarding@resend.dev>');
+      console.log('� From:', process.env.SMTP_EMAIL);
 
-      const { data, error } = await this.resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL || 'Glucoin <onboarding@resend.dev>',
+      const info = await this.transporter.sendMail({
+        from: `"Glucoin" <${process.env.SMTP_EMAIL}>`,
         to: email,
         subject: 'Email Verification - Glucoin',
         html: `
@@ -351,13 +353,8 @@ export class AuthService {
         `,
       });
 
-      if (error) {
-        console.error('❌ Resend API Error:', JSON.stringify(error, null, 2));
-        throw new Error(`Resend API Error: ${error.message || JSON.stringify(error)}`);
-      }
-
       console.log('✅ OTP email sent successfully!');
-      console.log('📬 Email ID:', data?.id);
+      console.log('📬 Message ID:', info.messageId);
     } catch (error) {
       console.error('❌ Failed to send OTP email:', error);
       console.error('Error details:', error.message || error);
