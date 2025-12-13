@@ -27,7 +27,8 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
     "db:seed": "npm run prisma:seed",
-    "db:reset": "prisma migrate reset"
+    "db:reset": "prisma migrate reset",
+    "scrape:facilities": "ts-node scripts/scrape-osm.ts --all"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

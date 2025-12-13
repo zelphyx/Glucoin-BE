@@ -74,4 +74,22 @@ export class FacilityController {
   remove(@Param('id') id: string) {
     return this.facilityService.deleteFacility(id);
   }
+
+  // Trigger scrape from OSM (Admin only)
+  @Post('scrape')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  scrapeFromOSM(
+    @Query('city') city?: string,
+    @Query('lat') lat?: string,
+    @Query('lon') lon?: string,
+    @Query('radius_km') radiusKm?: string,
+  ) {
+    return this.facilityService.scrapeFromOSM({
+      city,
+      lat: lat ? parseFloat(lat) : undefined,
+      lon: lon ? parseFloat(lon) : undefined,
+      radius_km: radiusKm ? parseFloat(radiusKm) : 15,
+    });
+  }
 }
