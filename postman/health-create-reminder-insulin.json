@@ -1,0 +1,8 @@
+{
+  "type": "INSULIN",
+  "title": "Suntik Insulin",
+  "message": "Waktunya suntik insulin sebelum makan malam",
+  "time": "18:00",
+  "days": ["EVERYDAY"],
+  "is_active": true
+}

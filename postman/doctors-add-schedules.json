@@ -1,0 +1,16 @@
+{
+  "schedules": [
+    {
+      "day_of_week": "FRIDAY",
+      "time_slot": "10:00",
+      "duration_minutes": 45,
+      "is_active": true
+    },
+    {
+      "day_of_week": "SATURDAY",
+      "time_slot": "08:00",
+      "duration_minutes": 30,
+      "is_active": true
+    }
+  ]
+}

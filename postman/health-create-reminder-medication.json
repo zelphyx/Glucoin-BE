@@ -1,0 +1,8 @@
+{
+  "type": "MEDICATION",
+  "title": "Minum Obat Pagi",
+  "message": "Jangan lupa minum Metformin 500mg setelah sarapan",
+  "time": "08:00",
+  "days": ["EVERYDAY"],
+  "is_active": true
+}

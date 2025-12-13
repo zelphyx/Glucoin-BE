@@ -1,0 +1,11 @@
+{
+  "doctor_id": "uuid-doctor-id-here",
+  "schedule_id": "uuid-schedule-id-here",
+  "booking_date": "2025-12-20",
+  "start_time": "09:00",
+  "end_time": "09:30",
+  "duration_minutes": 30,
+  "consultation_type": "ONLINE",
+  "consultation_fee": 150000,
+  "notes": "Konsultasi rutin cek gula darah"
+}

@@ -1,0 +1,9 @@
+{
+  "recipient_name": "John Doe",
+  "phone_number": "081234567890",
+  "address": "Jl. Sehat No. 123, RT 01/RW 02, Kel. Menteng",
+  "city": "Jakarta Selatan",
+  "province": "DKI Jakarta",
+  "postal_code": "12345",
+  "is_default": true
+}

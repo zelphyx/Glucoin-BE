@@ -18,6 +18,9 @@ model User {
   email                    String    @unique
   password                 String
   full_name                String
+  golongan_darah           String?
+  tekanan_darah            String?
+  alergi                   String?
   role                     UserRole
   date_of_birth            DateTime?
   gender                   Gender?
@@ -35,8 +38,23 @@ model User {
   created_at               DateTime  @default(now())
   updated_at               DateTime  @updatedAt
   last_login_at            DateTime?
+  
+  // Diabetes-specific fields
+  diabetes_type            DiabetesType?     // Tipe diabetes (Type 1, Type 2, Gestational, Pre-diabetes)
+  diagnosis_date           DateTime?         // Tanggal diagnosis diabetes
+  target_glucose_min       Int?              // Target gula darah minimum (mg/dL)
+  target_glucose_max       Int?              // Target gula darah maximum (mg/dL)
+  hba1c_target             Decimal?          // Target HbA1c (%)
+  last_hba1c               Decimal?          // Hasil HbA1c terakhir
+  last_hba1c_date          DateTime?         // Tanggal cek HbA1c terakhir
+  is_on_insulin            Boolean           @default(false)  // Apakah menggunakan insulin
+  is_reminder_active       Boolean           @default(true)   // Aktifkan reminder WhatsApp
+  
   Doctor                   Doctor?
   bookings                 Booking[]
+  glucose_logs             GlucoseLog[]
+  reminders                Reminder[]
+  medication_logs          MedicationLog[]
 }
 
 model Doctor {
@@ -384,4 +402,85 @@ enum FacilityType {
   CLINIC       // Klinik
   PUSKESMAS    // Puskesmas
   LAB          // Laboratorium
+}
+
+// ============= DIABETES MANAGEMENT MODELS =============
+
+enum DiabetesType {
+  TYPE_1           // Diabetes Tipe 1
+  TYPE_2           // Diabetes Tipe 2
+  GESTATIONAL      // Diabetes Gestasional (kehamilan)
+  PRE_DIABETES     // Pre-diabetes
+}
+
+enum GlucoseCategory {
+  FASTING          // Gula darah puasa (GDP)
+  BEFORE_MEAL      // Sebelum makan
+  AFTER_MEAL       // 2 jam setelah makan (GD2PP)
+  RANDOM           // Gula darah sewaktu (GDS)
+  BEDTIME          // Sebelum tidur
+}
+
+enum ReminderType {
+  GLUCOSE_CHECK    // Reminder cek gula darah
+  MEDICATION       // Reminder minum obat
+  INSULIN          // Reminder suntik insulin
+  EXERCISE         // Reminder olahraga
+  APPOINTMENT      // Reminder jadwal dokter
+  CUSTOM           // Reminder custom
+}
+
+// Log pencatatan gula darah
+model GlucoseLog {
+  id              String          @id @default(uuid())
+  user_id         String
+  glucose_level   Int             // Kadar gula darah (mg/dL)
+  category        GlucoseCategory // Kategori pengukuran
+  measured_at     DateTime        // Waktu pengukuran
+  notes           String?         // Catatan (misal: setelah makan nasi goreng)
+  is_normal       Boolean?        // Apakah dalam rentang normal
+  created_at      DateTime        @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([measured_at])
+  @@index([user_id, measured_at])
+}
+
+// Reminder harian
+model Reminder {
+  id              String        @id @default(uuid())
+  user_id         String
+  type            ReminderType
+  title           String        // Judul reminder
+  message         String        // Pesan yang dikirim
+  time            String        // Format: "HH:mm" (contoh: "07:00", "12:00")
+  days            String[]      // Hari aktif: ["MONDAY", "TUESDAY", ...] atau ["EVERYDAY"]
+  is_active       Boolean       @default(true)
+  last_sent_at    DateTime?     // Terakhir dikirim
+  next_send_at    DateTime?     // Jadwal kirim berikutnya
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([is_active, next_send_at])
+}
+
+// Log minum obat
+model MedicationLog {
+  id              String    @id @default(uuid())
+  user_id         String
+  medication_name String    // Nama obat (Metformin, Glimepiride, Insulin, dll)
+  dosage          String    // Dosis (500mg, 10 unit, dll)
+  taken_at        DateTime  // Waktu minum obat
+  notes           String?
+  created_at      DateTime  @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([taken_at])
 }

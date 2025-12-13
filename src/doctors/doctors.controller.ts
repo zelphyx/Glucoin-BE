@@ -122,4 +122,86 @@ export class DoctorsController {
   deleteAllSchedules(@Param('id') id: string) {
     return this.doctorsService.deleteAllSchedules(id);
   }
+
+  // ==================== DOCTOR STATISTICS ENDPOINTS ====================
+
+  // Get doctor's income statistics
+  @Get(':id/income')
+  @UseGuards(RolesGuard)
+  @Roles('DOCTOR', 'ADMIN')
+  getDoctorIncome(
+    @Param('id') id: string,
+    @Query('period') period?: 'today' | 'week' | 'month' | 'year' | 'all',
+  ) {
+    return this.doctorsService.getDoctorIncome(id, period);
+  }
+
+  // Get my income (for logged in doctor)
+  @Get('me/income')
+  @UseGuards(RolesGuard)
+  @Roles('DOCTOR')
+  async getMyIncome(
+    @CurrentUser() user: any,
+    @Query('period') period?: 'today' | 'week' | 'month' | 'year' | 'all',
+  ) {
+    const doctor = await this.doctorsService.findByUserId(user.id);
+    return this.doctorsService.getDoctorIncome(doctor.id, period);
+  }
+
+  // Get doctor's patients statistics
+  @Get(':id/patients')
+  @UseGuards(RolesGuard)
+  @Roles('DOCTOR', 'ADMIN')
+  getDoctorPatients(@Param('id') id: string) {
+    return this.doctorsService.getDoctorPatients(id);
+  }
+
+  // Get my patients (for logged in doctor)
+  @Get('me/patients')
+  @UseGuards(RolesGuard)
+  @Roles('DOCTOR')
+  async getMyPatients(@CurrentUser() user: any) {
+    const doctor = await this.doctorsService.findByUserId(user.id);
+    return this.doctorsService.getDoctorPatients(doctor.id);
+  }
+
+  // Get doctor's upcoming appointments
+  @Get(':id/appointments/upcoming')
+  @UseGuards(RolesGuard)
+  @Roles('DOCTOR', 'ADMIN')
+  getUpcomingAppointments(
+    @Param('id') id: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.doctorsService.getUpcomingAppointments(id, limit ? parseInt(limit) : undefined);
+  }
+
+  // Get my upcoming appointments (for logged in doctor)
+  @Get('me/appointments')
+  @UseGuards(RolesGuard)
+  @Roles('DOCTOR')
+  async getMyAppointments(
+    @CurrentUser() user: any,
+    @Query('limit') limit?: string,
+  ) {
+    const doctor = await this.doctorsService.findByUserId(user.id);
+    return this.doctorsService.getUpcomingAppointments(doctor.id, limit ? parseInt(limit) : undefined);
+  }
+
+  // Get complete doctor dashboard
+  @Get(':id/dashboard')
+  @UseGuards(RolesGuard)
+  @Roles('DOCTOR', 'ADMIN')
+  getDoctorDashboard(@Param('id') id: string) {
+    return this.doctorsService.getDoctorDashboard(id);
+  }
+
+  // Get my dashboard (for logged in doctor)
+  @Get('me/dashboard')
+  @UseGuards(RolesGuard)
+  @Roles('DOCTOR')
+  async getMyDashboard(@CurrentUser() user: any) {
+    const doctor = await this.doctorsService.findByUserId(user.id);
+    return this.doctorsService.getDoctorDashboard(doctor.id);
+  }
 }

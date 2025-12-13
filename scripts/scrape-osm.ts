@@ -44,11 +44,24 @@ interface OSMElement {
 function mapOSMType(element: OSMElement): string | null {
   const { amenity, healthcare } = element.tags;
   
+  // Hospital
   if (amenity === 'hospital' || healthcare === 'hospital') return 'HOSPITAL';
-  if (amenity === 'pharmacy') return 'PHARMACY';
+  
+  // Pharmacy
+  if (amenity === 'pharmacy' || healthcare === 'pharmacy') return 'PHARMACY';
+  
+  // Clinic (termasuk dokter, dentist, health centre)
   if (amenity === 'clinic' || healthcare === 'clinic') return 'CLINIC';
   if (amenity === 'doctors' || healthcare === 'doctor') return 'CLINIC';
-  if (healthcare === 'laboratory') return 'LAB';
+  if (amenity === 'dentist' || healthcare === 'dentist') return 'CLINIC';
+  if (healthcare === 'centre') return 'CLINIC';
+  
+  // Puskesmas
+  if (amenity === 'health_post' || healthcare === 'health_post') return 'PUSKESMAS';
+  
+  // Lab
+  if (healthcare === 'laboratory' || amenity === 'laboratory') return 'LAB';
+  if (healthcare === 'sample_collection') return 'LAB';
   
   return null;
 }
@@ -59,26 +72,49 @@ async function queryOverpass(
   lon: number,
   radiusMeters: number,
 ): Promise<OSMElement[]> {
-  // Overpass QL query untuk healthcare facilities
+  // Overpass QL query untuk healthcare facilities - lebih lengkap
   const query = `
-    [out:json][timeout:60];
+    [out:json][timeout:120];
     (
-      // Hospitals
+      // Hospitals - semua variasi
       node["amenity"="hospital"](around:${radiusMeters},${lat},${lon});
       way["amenity"="hospital"](around:${radiusMeters},${lat},${lon});
+      relation["amenity"="hospital"](around:${radiusMeters},${lat},${lon});
+      node["healthcare"="hospital"](around:${radiusMeters},${lat},${lon});
+      way["healthcare"="hospital"](around:${radiusMeters},${lat},${lon});
+      
+      // Clinics - semua variasi
+      node["amenity"="clinic"](around:${radiusMeters},${lat},${lon});
+      way["amenity"="clinic"](around:${radiusMeters},${lat},${lon});
+      relation["amenity"="clinic"](around:${radiusMeters},${lat},${lon});
+      node["healthcare"="clinic"](around:${radiusMeters},${lat},${lon});
+      way["healthcare"="clinic"](around:${radiusMeters},${lat},${lon});
+      node["healthcare"="centre"](around:${radiusMeters},${lat},${lon});
+      way["healthcare"="centre"](around:${radiusMeters},${lat},${lon});
+      node["healthcare"="doctor"](around:${radiusMeters},${lat},${lon});
+      node["amenity"="doctors"](around:${radiusMeters},${lat},${lon});
+      way["amenity"="doctors"](around:${radiusMeters},${lat},${lon});
+      
+      // Dentist
+      node["amenity"="dentist"](around:${radiusMeters},${lat},${lon});
+      way["amenity"="dentist"](around:${radiusMeters},${lat},${lon});
+      node["healthcare"="dentist"](around:${radiusMeters},${lat},${lon});
+      
+      // Puskesmas / Health posts
+      node["amenity"="health_post"](around:${radiusMeters},${lat},${lon});
+      way["amenity"="health_post"](around:${radiusMeters},${lat},${lon});
+      node["healthcare"="health_post"](around:${radiusMeters},${lat},${lon});
       
       // Pharmacies
       node["amenity"="pharmacy"](around:${radiusMeters},${lat},${lon});
       way["amenity"="pharmacy"](around:${radiusMeters},${lat},${lon});
+      node["healthcare"="pharmacy"](around:${radiusMeters},${lat},${lon});
       
-      // Clinics
-      node["amenity"="clinic"](around:${radiusMeters},${lat},${lon});
-      way["amenity"="clinic"](around:${radiusMeters},${lat},${lon});
-      node["amenity"="doctors"](around:${radiusMeters},${lat},${lon});
-      
-      // Healthcare generic
-      node["healthcare"](around:${radiusMeters},${lat},${lon});
-      way["healthcare"](around:${radiusMeters},${lat},${lon});
+      // Laboratory
+      node["healthcare"="laboratory"](around:${radiusMeters},${lat},${lon});
+      way["healthcare"="laboratory"](around:${radiusMeters},${lat},${lon});
+      node["amenity"="laboratory"](around:${radiusMeters},${lat},${lon});
+      node["healthcare"="sample_collection"](around:${radiusMeters},${lat},${lon});
     );
     out center;
   `;
@@ -101,6 +137,7 @@ async function queryOverpass(
 
 // Parse city and province from tags or use default
 function parseLocation(element: OSMElement, defaultCity: string, defaultProvince: string) {
+  // eslint-disable-next-line prefer-const
   let city = element.tags['addr:city'] || defaultCity;
   let province = defaultProvince;
 
@@ -237,7 +274,7 @@ async function scrapeFacilitiesFromOSM(
 // Scrape multiple cities in Indonesia
 async function scrapeMultipleCities() {
   const cities = [
-    // Jabodetabek
+    // Jabodetabek - dengan radius lebih besar
     { name: 'Jakarta Pusat', province: 'DKI Jakarta', lat: -6.1754, lon: 106.8272 },
     { name: 'Jakarta Selatan', province: 'DKI Jakarta', lat: -6.2615, lon: 106.8106 },
     { name: 'Jakarta Barat', province: 'DKI Jakarta', lat: -6.1484, lon: 106.7552 },
@@ -246,17 +283,89 @@ async function scrapeMultipleCities() {
     { name: 'Bekasi', province: 'Jawa Barat', lat: -6.2383, lon: 106.9756 },
     { name: 'Depok', province: 'Jawa Barat', lat: -6.4025, lon: 106.7942 },
     { name: 'Tangerang', province: 'Banten', lat: -6.1702, lon: 106.6403 },
+    { name: 'Tangerang Selatan', province: 'Banten', lat: -6.2886, lon: 106.7170 },
     { name: 'Bogor', province: 'Jawa Barat', lat: -6.5971, lon: 106.8060 },
+    { name: 'Cikarang', province: 'Jawa Barat', lat: -6.3024, lon: 107.1539 },
+    { name: 'Karawang', province: 'Jawa Barat', lat: -6.3227, lon: 107.3376 },
+    { name: 'Cibubur', province: 'Jawa Barat', lat: -6.3694, lon: 106.8814 },
     
-    // Other major cities
+    // Jawa Barat
     { name: 'Bandung', province: 'Jawa Barat', lat: -6.9175, lon: 107.6191 },
-    { name: 'Surabaya', province: 'Jawa Timur', lat: -7.2575, lon: 112.7521 },
+    { name: 'Bandung Barat', province: 'Jawa Barat', lat: -6.8405, lon: 107.5216 },
+    { name: 'Cimahi', province: 'Jawa Barat', lat: -6.8721, lon: 107.5424 },
+    { name: 'Cirebon', province: 'Jawa Barat', lat: -6.7320, lon: 108.5523 },
+    { name: 'Tasikmalaya', province: 'Jawa Barat', lat: -7.3274, lon: 108.2207 },
+    { name: 'Sukabumi', province: 'Jawa Barat', lat: -6.9277, lon: 106.9300 },
+    { name: 'Garut', province: 'Jawa Barat', lat: -7.2274, lon: 107.9086 },
+    
+    // Jawa Tengah
     { name: 'Semarang', province: 'Jawa Tengah', lat: -6.9666, lon: 110.4196 },
+    { name: 'Solo', province: 'Jawa Tengah', lat: -7.5755, lon: 110.8243 },
+    { name: 'Klaten', province: 'Jawa Tengah', lat: -7.7056, lon: 110.6042 },
+    { name: 'Magelang', province: 'Jawa Tengah', lat: -7.4797, lon: 110.2177 },
+    { name: 'Pekalongan', province: 'Jawa Tengah', lat: -6.8885, lon: 109.6753 },
+    { name: 'Purwokerto', province: 'Jawa Tengah', lat: -7.4214, lon: 109.2342 },
+    { name: 'Tegal', province: 'Jawa Tengah', lat: -6.8797, lon: 109.1256 },
+    { name: 'Salatiga', province: 'Jawa Tengah', lat: -7.3305, lon: 110.5084 },
+    
+    // DI Yogyakarta
     { name: 'Yogyakarta', province: 'DI Yogyakarta', lat: -7.7956, lon: 110.3695 },
+    { name: 'Sleman', province: 'DI Yogyakarta', lat: -7.7166, lon: 110.3558 },
+    { name: 'Bantul', province: 'DI Yogyakarta', lat: -7.8895, lon: 110.3275 },
+    
+    // Jawa Timur
+    { name: 'Surabaya', province: 'Jawa Timur', lat: -7.2575, lon: 112.7521 },
+    { name: 'Surabaya Barat', province: 'Jawa Timur', lat: -7.2894, lon: 112.6753 },
+    { name: 'Surabaya Timur', province: 'Jawa Timur', lat: -7.2705, lon: 112.8037 },
+    { name: 'Malang', province: 'Jawa Timur', lat: -7.9666, lon: 112.6326 },
+    { name: 'Sidoarjo', province: 'Jawa Timur', lat: -7.4478, lon: 112.7183 },
+    { name: 'Gresik', province: 'Jawa Timur', lat: -7.1587, lon: 112.6511 },
+    { name: 'Kediri', province: 'Jawa Timur', lat: -7.8480, lon: 112.0178 },
+    { name: 'Jember', province: 'Jawa Timur', lat: -8.1845, lon: 113.6681 },
+    { name: 'Banyuwangi', province: 'Jawa Timur', lat: -8.2194, lon: 114.3691 },
+    { name: 'Mojokerto', province: 'Jawa Timur', lat: -7.4723, lon: 112.4340 },
+    { name: 'Pasuruan', province: 'Jawa Timur', lat: -7.6469, lon: 112.9075 },
+    
+    // Banten
+    { name: 'Serang', province: 'Banten', lat: -6.1103, lon: 106.1640 },
+    { name: 'Cilegon', province: 'Banten', lat: -6.0023, lon: 106.0540 },
+    
+    // Sumatera
     { name: 'Medan', province: 'Sumatera Utara', lat: 3.5952, lon: 98.6722 },
-    { name: 'Makassar', province: 'Sulawesi Selatan', lat: -5.1477, lon: 119.4327 },
+    { name: 'Binjai', province: 'Sumatera Utara', lat: 3.6001, lon: 98.4855 },
     { name: 'Palembang', province: 'Sumatera Selatan', lat: -2.9761, lon: 104.7754 },
+    { name: 'Pekanbaru', province: 'Riau', lat: 0.5071, lon: 101.4478 },
+    { name: 'Padang', province: 'Sumatera Barat', lat: -0.9471, lon: 100.4172 },
+    { name: 'Bandar Lampung', province: 'Lampung', lat: -5.3971, lon: 105.2668 },
+    { name: 'Batam', province: 'Kepulauan Riau', lat: 1.0456, lon: 104.0305 },
+    { name: 'Jambi', province: 'Jambi', lat: -1.6101, lon: 103.6131 },
+    { name: 'Bengkulu', province: 'Bengkulu', lat: -3.7928, lon: 102.2608 },
+    { name: 'Banda Aceh', province: 'Aceh', lat: 5.5483, lon: 95.3238 },
+    
+    // Kalimantan
+    { name: 'Banjarmasin', province: 'Kalimantan Selatan', lat: -3.3186, lon: 114.5944 },
+    { name: 'Balikpapan', province: 'Kalimantan Timur', lat: -1.2379, lon: 116.8529 },
+    { name: 'Samarinda', province: 'Kalimantan Timur', lat: -0.4948, lon: 117.1436 },
+    { name: 'Pontianak', province: 'Kalimantan Barat', lat: -0.0263, lon: 109.3425 },
+    { name: 'Palangkaraya', province: 'Kalimantan Tengah', lat: -2.2136, lon: 113.9108 },
+    
+    // Sulawesi
+    { name: 'Makassar', province: 'Sulawesi Selatan', lat: -5.1477, lon: 119.4327 },
+    { name: 'Manado', province: 'Sulawesi Utara', lat: 1.4748, lon: 124.8421 },
+    { name: 'Palu', province: 'Sulawesi Tengah', lat: -0.8917, lon: 119.8707 },
+    { name: 'Kendari', province: 'Sulawesi Tenggara', lat: -3.9675, lon: 122.5947 },
+    
+    // Bali & Nusa Tenggara
     { name: 'Denpasar', province: 'Bali', lat: -8.6705, lon: 115.2126 },
+    { name: 'Badung', province: 'Bali', lat: -8.5819, lon: 115.1773 },
+    { name: 'Gianyar', province: 'Bali', lat: -8.5444, lon: 115.3253 },
+    { name: 'Mataram', province: 'Nusa Tenggara Barat', lat: -8.5833, lon: 116.1167 },
+    { name: 'Kupang', province: 'Nusa Tenggara Timur', lat: -10.1772, lon: 123.6070 },
+    
+    // Papua & Maluku
+    { name: 'Jayapura', province: 'Papua', lat: -2.5916, lon: 140.6690 },
+    { name: 'Ambon', province: 'Maluku', lat: -3.6954, lon: 128.1814 },
+    { name: 'Sorong', province: 'Papua Barat', lat: -0.8761, lon: 131.2558 },
   ];
 
   let totalSaved = 0;
@@ -269,7 +378,7 @@ async function scrapeMultipleCities() {
     const saved = await scrapeFacilitiesFromOSM(
       city.lat,
       city.lon,
-      15, // 15km radius
+      20, // 20km radius - lebih besar untuk cover lebih banyak
       city.name,
       city.province,
     );

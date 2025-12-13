@@ -1,0 +1,8 @@
+{
+  "type": "GLUCOSE_CHECK",
+  "title": "Cek Gula Darah Pagi",
+  "message": "Waktunya cek gula darah pagi sebelum makan!",
+  "time": "07:00",
+  "days": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"],
+  "is_active": true
+}

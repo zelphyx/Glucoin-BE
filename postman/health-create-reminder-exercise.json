@@ -1,0 +1,8 @@
+{
+  "type": "EXERCISE",
+  "title": "Olahraga Sore",
+  "message": "Yuk jalan kaki 30 menit untuk menjaga kesehatan!",
+  "time": "17:00",
+  "days": ["MONDAY", "WEDNESDAY", "FRIDAY"],
+  "is_active": true
+}

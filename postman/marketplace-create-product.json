@@ -1,0 +1,9 @@
+{
+  "name": "Glucometer Digital",
+  "description": "Alat ukur gula darah digital dengan akurasi tinggi, dilengkapi strip test 25 pcs",
+  "price": 250000,
+  "discount_percent": 10,
+  "quantity": 50,
+  "image_url": "https://example.com/glucometer.jpg",
+  "category": "MEDICAL_DEVICE"
+}

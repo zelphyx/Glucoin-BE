@@ -2,6 +2,7 @@
 import { Module } from '@nestjs/common';
 // @ts-ignore
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -10,17 +11,20 @@ import { BookingModule } from './booking/booking.module';
 import { PaymentModule } from './payment/payment.module';
 import { MarketplaceModule } from './marketplace/marketplace.module';
 import { FacilityModule } from './facility/facility.module';
+import { ReminderModule } from './reminder/reminder.module';
 import { PrismaService } from './prisma.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     AuthModule,
     DoctorsModule,
     BookingModule,
     PaymentModule,
     MarketplaceModule,
     FacilityModule,
+    ReminderModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

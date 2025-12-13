@@ -1,0 +1,259 @@
+{
+  "info": {
+    "name": "Glucoin API - POST Payloads",
+    "description": "Copy-paste ready JSON payloads untuk Postman"
+  },
+
+  "AUTH": {
+    "POST /auth/register": {
+      "email": "user@example.com",
+      "password": "password123",
+      "full_name": "John Doe",
+      "role": "PATIENT",
+      "phone_number": "081234567890"
+    },
+
+    "POST /auth/verify-otp": {
+      "email": "user@example.com",
+      "otp": "123456"
+    },
+
+    "POST /auth/resend-otp": {
+      "email": "user@example.com"
+    },
+
+    "POST /auth/login": {
+      "email": "user@example.com",
+      "password": "password123"
+    },
+
+    "POST /auth/forgot-password": {
+      "email": "user@example.com"
+    },
+
+    "POST /auth/reset-password": {
+      "token": "reset-token-from-email-link",
+      "newPassword": "newpassword123",
+      "confirmPassword": "newpassword123",
+      "confirmReset": true
+    }
+  },
+
+  "DOCTORS": {
+    "POST /doctors": {
+      "user_id": "uuid-user-id-here",
+      "specialization": "Endocrinology",
+      "alamat_praktek": "RS Diabetes Center, Jl. Kesehatan No. 1, Jakarta",
+      "price_range": "150000-300000",
+      "is_available": true,
+      "schedules": [
+        {
+          "day_of_week": "MONDAY",
+          "time_slot": "09:00",
+          "duration_minutes": 30,
+          "is_active": true
+        },
+        {
+          "day_of_week": "WEDNESDAY",
+          "time_slot": "14:00",
+          "duration_minutes": 30,
+          "is_active": true
+        }
+      ]
+    },
+
+    "POST /doctors/:id/schedules": {
+      "schedules": [
+        {
+          "day_of_week": "FRIDAY",
+          "time_slot": "10:00",
+          "duration_minutes": 45,
+          "is_active": true
+        },
+        {
+          "day_of_week": "SATURDAY",
+          "time_slot": "08:00",
+          "duration_minutes": 30,
+          "is_active": true
+        }
+      ]
+    }
+  },
+
+  "BOOKING": {
+    "POST /bookings": {
+      "doctor_id": "uuid-doctor-id-here",
+      "schedule_id": "uuid-schedule-id-here",
+      "booking_date": "2025-12-20",
+      "start_time": "09:00",
+      "end_time": "09:30",
+      "duration_minutes": 30,
+      "consultation_type": "ONLINE",
+      "consultation_fee": 150000,
+      "notes": "Konsultasi rutin cek gula darah"
+    }
+  },
+
+  "PAYMENT": {
+    "POST /payment/create/:bookingId": {
+      "_comment": "No body required - just call the endpoint with bookingId in URL"
+    },
+
+    "POST /payment/cancel/:orderId": {
+      "_comment": "No body required - just call the endpoint with orderId in URL"
+    }
+  },
+
+  "MARKETPLACE": {
+    "POST /marketplace/products": {
+      "name": "Glucometer Digital",
+      "description": "Alat ukur gula darah digital dengan akurasi tinggi, dilengkapi strip test 25 pcs",
+      "price": 250000,
+      "discount_percent": 10,
+      "quantity": 50,
+      "image_url": "https://example.com/glucometer.jpg",
+      "category": "MEDICAL_DEVICE"
+    },
+
+    "POST /marketplace/cart": {
+      "product_id": "uuid-product-id-here",
+      "quantity": 2
+    },
+
+    "POST /marketplace/addresses": {
+      "recipient_name": "John Doe",
+      "phone_number": "081234567890",
+      "address": "Jl. Sehat No. 123, RT 01/RW 02, Kel. Menteng",
+      "city": "Jakarta Selatan",
+      "province": "DKI Jakarta",
+      "postal_code": "12345",
+      "is_default": true
+    },
+
+    "POST /marketplace/orders": {
+      "shipping_address_id": "uuid-address-id-here",
+      "shipping_cost": 15000,
+      "courier": "JNE",
+      "notes": "Tolong packing yang rapi, jangan sampai pecah"
+    },
+
+    "POST /marketplace/products/:id/review": {
+      "rating": 5,
+      "comment": "Produk bagus, pengiriman cepat, packing aman!"
+    }
+  },
+
+  "FACILITIES": {
+    "POST /facilities": {
+      "name": "RS Diabetes Center Jakarta",
+      "type": "HOSPITAL",
+      "address": "Jl. Kesehatan No. 1, Menteng",
+      "city": "Jakarta Pusat",
+      "province": "DKI Jakarta",
+      "phone": "021-12345678",
+      "latitude": -6.2088,
+      "longitude": 106.8456,
+      "image_url": "https://example.com/hospital.jpg",
+      "is_open_24h": true,
+      "opening_time": "00:00",
+      "closing_time": "23:59"
+    },
+
+    "POST /facilities/scrape": {
+      "_comment": "No body required - triggers OSM data scraping"
+    }
+  },
+
+  "HEALTH_REMINDERS": {
+    "POST /health/reminders": {
+      "type": "GLUCOSE_CHECK",
+      "title": "Cek Gula Darah Pagi",
+      "message": "Waktunya cek gula darah pagi sebelum makan!",
+      "time": "07:00",
+      "days": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"],
+      "is_active": true
+    },
+
+    "POST /health/reminders (MEDICATION)": {
+      "type": "MEDICATION",
+      "title": "Minum Obat Pagi",
+      "message": "Jangan lupa minum Metformin 500mg setelah sarapan",
+      "time": "08:00",
+      "days": ["EVERYDAY"],
+      "is_active": true
+    },
+
+    "POST /health/reminders (INSULIN)": {
+      "type": "INSULIN",
+      "title": "Suntik Insulin",
+      "message": "Waktunya suntik insulin sebelum makan malam",
+      "time": "18:00",
+      "days": ["EVERYDAY"],
+      "is_active": true
+    },
+
+    "POST /health/reminders (EXERCISE)": {
+      "type": "EXERCISE",
+      "title": "Olahraga Sore",
+      "message": "Yuk jalan kaki 30 menit untuk menjaga kesehatan!",
+      "time": "17:00",
+      "days": ["MONDAY", "WEDNESDAY", "FRIDAY"],
+      "is_active": true
+    },
+
+    "POST /health/reminders/setup-default": {
+      "_comment": "No body required - creates default reminders for diabetes management"
+    },
+
+    "POST /health/glucose": {
+      "glucose_level": 120,
+      "category": "FASTING",
+      "measured_at": "2025-12-14T07:00:00Z",
+      "notes": "Sebelum sarapan, kondisi normal"
+    },
+
+    "POST /health/glucose (AFTER_MEAL)": {
+      "glucose_level": 145,
+      "category": "AFTER_MEAL",
+      "measured_at": "2025-12-14T13:00:00Z",
+      "notes": "2 jam setelah makan siang"
+    },
+
+    "POST /health/glucose (BEDTIME)": {
+      "glucose_level": 110,
+      "category": "BEDTIME",
+      "measured_at": "2025-12-14T22:00:00Z",
+      "notes": "Sebelum tidur"
+    },
+
+    "POST /health/medication": {
+      "medication_name": "Metformin",
+      "dosage": "500mg",
+      "taken_at": "2025-12-14T08:00:00Z",
+      "notes": "Diminum setelah sarapan"
+    },
+
+    "POST /health/medication (INSULIN)": {
+      "medication_name": "Insulin Lantus",
+      "dosage": "10 unit",
+      "taken_at": "2025-12-14T18:00:00Z",
+      "notes": "Suntik di perut sebelum makan malam"
+    },
+
+    "POST /health/test-notification": {
+      "_comment": "No body required - sends test WhatsApp notification to user's phone"
+    }
+  },
+
+  "ENUMS": {
+    "role": ["PATIENT", "DOCTOR", "ADMIN"],
+    "day_of_week": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"],
+    "consultation_type": ["ONLINE", "OFFLINE"],
+    "facility_type": ["HOSPITAL", "PHARMACY", "CLINIC", "PUSKESMAS", "LAB"],
+    "product_category": ["SUPPLEMENT", "MEDICINE", "MEDICAL_DEVICE", "FOOD_DRINK", "OTHER"],
+    "reminder_type": ["GLUCOSE_CHECK", "MEDICATION", "INSULIN", "EXERCISE", "APPOINTMENT", "CUSTOM"],
+    "glucose_category": ["FASTING", "BEFORE_MEAL", "AFTER_MEAL", "RANDOM", "BEDTIME"],
+    "diabetes_type": ["TYPE_1", "TYPE_2", "GESTATIONAL", "PRE_DIABETES"],
+    "shipping_status": ["NOT_SHIPPED", "PROCESSING", "SHIPPED", "IN_TRANSIT", "DELIVERED"]
+  }
+}

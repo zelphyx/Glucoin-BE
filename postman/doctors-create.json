@@ -1,0 +1,21 @@
+{
+  "user_id": "uuid-user-id-here",
+  "specialization": "Endocrinology",
+  "alamat_praktek": "RS Diabetes Center, Jl. Kesehatan No. 1, Jakarta",
+  "price_range": "150000-300000",
+  "is_available": true,
+  "schedules": [
+    {
+      "day_of_week": "MONDAY",
+      "time_slot": "09:00",
+      "duration_minutes": 30,
+      "is_active": true
+    },
+    {
+      "day_of_week": "WEDNESDAY",
+      "time_slot": "14:00",
+      "duration_minutes": 30,
+      "is_active": true
+    }
+  ]
+}

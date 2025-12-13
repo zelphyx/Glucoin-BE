@@ -1,0 +1,6 @@
+{
+  "shipping_address_id": "uuid-address-id-here",
+  "shipping_cost": 15000,
+  "courier": "JNE",
+  "notes": "Tolong packing yang rapi, jangan sampai pecah"
+}
