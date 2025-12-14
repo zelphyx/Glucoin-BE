@@ -123,13 +123,16 @@ export class PaymentService {
 
   // Handle Midtrans webhook notification
   async handleNotification(notification: any) {
+    console.log('🔔 ============ MIDTRANS NOTIFICATION RECEIVED ============');
+    console.log('📦 Full notification payload:', JSON.stringify(notification, null, 2));
+    
     const orderId = notification.order_id;
     const transactionStatus = notification.transaction_status;
     const fraudStatus = notification.fraud_status;
     const paymentType = notification.payment_type;
     const transactionId = notification.transaction_id;
 
-    console.log('📥 Booking Payment Notification:', {
+    console.log('📥 Payment Notification:', {
       order_id: orderId,
       transaction_status: transactionStatus,
       fraud_status: fraudStatus,

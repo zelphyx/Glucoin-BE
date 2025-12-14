@@ -46,6 +46,8 @@ export class MidtransService implements OnModuleInit {
       name: string;
     }[];
   }) {
+    const backendUrl = this.configService.get('BACKEND_URL', 'https://glucoinapi.mentorit.my.id');
+    
     const parameter = {
       transaction_details: {
         order_id: params.orderId,
@@ -59,11 +61,14 @@ export class MidtransService implements OnModuleInit {
       },
       item_details: params.itemDetails,
       callbacks: {
-        finish: this.configService.get('MIDTRANS_FINISH_URL', 'https://glucoin.vercel.app/payment/success'),
-        unfinish: this.configService.get('MIDTRANS_UNFINISH_URL', 'https://glucoin.vercel.app/payment/pending'),
-        error: this.configService.get('MIDTRANS_ERROR_URL', 'https://glucoin.vercel.app/payment/error'),
+        finish: this.configService.get('MIDTRANS_FINISH_URL', 'http://localhost:3000/payment/success'),
+        unfinish: this.configService.get('MIDTRANS_UNFINISH_URL', 'http://localhost:3000/payment/pending'),
+        error: this.configService.get('MIDTRANS_ERROR_URL', 'http://localhost:3000/payment/error'),
       },
     };
+
+    console.log('📤 Creating Midtrans transaction:', params.orderId);
+    console.log('⚠️  Make sure Notification URL is set in Midtrans Dashboard:', `${backendUrl}/payments/notification`);
 
     const transaction = await this.snap.createTransaction(parameter);
     return {
