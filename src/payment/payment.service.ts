@@ -284,6 +284,207 @@ export class PaymentService {
     return payment;
   }
 
+  // Get all booking payment history for a user
+  async getBookingPaymentHistory(userId: string, filters?: {
+    status?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      booking: {
+        user_id: userId,
+      },
+    };
+
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    const [payments, total] = await Promise.all([
+      this.prisma.payment.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { created_at: 'desc' },
+        include: {
+          booking: {
+            include: {
+              doctor: {
+                include: {
+                  user: {
+                    select: {
+                      full_name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.payment.count({ where }),
+    ]);
+
+    return {
+      data: payments.map(payment => ({
+        id: payment.id,
+        order_id: payment.order_id,
+        amount: payment.amount,
+        payment_type: payment.payment_type,
+        status: payment.status,
+        transaction_status: payment.transaction_status,
+        expiry_time: payment.expiry_time,
+        created_at: payment.created_at,
+        booking: {
+          id: payment.booking.id,
+          booking_date: payment.booking.booking_date,
+          start_time: payment.booking.start_time,
+          consultation_type: payment.booking.consultation_type,
+          doctor_name: payment.booking.doctor.user.full_name,
+          specialization: payment.booking.doctor.specialization,
+        },
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        total_pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  // Get all marketplace payment history for a user
+  async getMarketplacePaymentHistory(userId: string, filters?: {
+    status?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      order: {
+        user_id: userId,
+      },
+    };
+
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    const [payments, total] = await Promise.all([
+      this.prisma.orderPayment.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { created_at: 'desc' },
+        include: {
+          order: {
+            include: {
+              items: {
+                select: {
+                  product_name: true,
+                  quantity: true,
+                  subtotal: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.orderPayment.count({ where }),
+    ]);
+
+    return {
+      data: payments.map(payment => ({
+        id: payment.id,
+        order_payment_id: payment.order_payment_id,
+        amount: payment.amount,
+        payment_type: payment.payment_type,
+        status: payment.status,
+        transaction_status: payment.transaction_status,
+        expiry_time: payment.expiry_time,
+        created_at: payment.created_at,
+        order: {
+          id: payment.order.id,
+          order_number: payment.order.order_number,
+          total_amount: payment.order.total_amount,
+          status: payment.order.status,
+          items_count: payment.order.items.length,
+          items: payment.order.items,
+        },
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        total_pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  // Get combined payment history (both booking and marketplace)
+  async getAllPaymentHistory(userId: string, filters?: {
+    type?: 'booking' | 'marketplace' | 'all';
+    status?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const type = filters?.type || 'all';
+
+    if (type === 'booking') {
+      const result = await this.getBookingPaymentHistory(userId, filters);
+      return {
+        ...result,
+        data: result.data.map(p => ({ ...p, payment_for: 'BOOKING' })),
+      };
+    }
+
+    if (type === 'marketplace') {
+      const result = await this.getMarketplacePaymentHistory(userId, filters);
+      return {
+        ...result,
+        data: result.data.map(p => ({ ...p, payment_for: 'MARKETPLACE' })),
+      };
+    }
+
+    // Get both
+    const [bookingPayments, marketplacePayments] = await Promise.all([
+      this.getBookingPaymentHistory(userId, { status: filters?.status }),
+      this.getMarketplacePaymentHistory(userId, { status: filters?.status }),
+    ]);
+
+    // Combine and sort by created_at
+    const allPayments = [
+      ...bookingPayments.data.map(p => ({ ...p, payment_for: 'BOOKING' as const })),
+      ...marketplacePayments.data.map(p => ({ ...p, payment_for: 'MARKETPLACE' as const })),
+    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 10;
+    const start = (page - 1) * limit;
+    const paginatedPayments = allPayments.slice(start, start + limit);
+
+    return {
+      data: paginatedPayments,
+      pagination: {
+        page,
+        limit,
+        total: allPayments.length,
+        total_pages: Math.ceil(allPayments.length / limit),
+      },
+      summary: {
+        booking_count: bookingPayments.pagination.total,
+        marketplace_count: marketplacePayments.pagination.total,
+      },
+    };
+  }
+
   // Cancel payment
   async cancelPayment(orderId: string) {
     const payment = await this.prisma.payment.findUnique({

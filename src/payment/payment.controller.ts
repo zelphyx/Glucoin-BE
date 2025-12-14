@@ -6,7 +6,9 @@ import {
   Param,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PaymentService } from './payment.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -42,6 +44,56 @@ export class PaymentController {
   @UseGuards(JwtAuthGuard)
   getPaymentByBookingId(@Param('bookingId') bookingId: string) {
     return this.paymentService.getPaymentByBookingId(bookingId);
+  }
+
+  // Get all booking payment history for current user
+  @Get('history/booking')
+  @UseGuards(JwtAuthGuard)
+  getBookingPaymentHistory(
+    @CurrentUser() user: any,
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.paymentService.getBookingPaymentHistory(user.id, {
+      status,
+      page: page ? Number(page) : 1,
+      limit: limit ? Number(limit) : 10,
+    });
+  }
+
+  // Get all marketplace payment history for current user
+  @Get('history/marketplace')
+  @UseGuards(JwtAuthGuard)
+  getMarketplacePaymentHistory(
+    @CurrentUser() user: any,
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.paymentService.getMarketplacePaymentHistory(user.id, {
+      status,
+      page: page ? Number(page) : 1,
+      limit: limit ? Number(limit) : 10,
+    });
+  }
+
+  // Get all payment history (booking + marketplace)
+  @Get('history')
+  @UseGuards(JwtAuthGuard)
+  getAllPaymentHistory(
+    @CurrentUser() user: any,
+    @Query('type') type?: 'booking' | 'marketplace' | 'all',
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.paymentService.getAllPaymentHistory(user.id, {
+      type,
+      status,
+      page: page ? Number(page) : 1,
+      limit: limit ? Number(limit) : 10,
+    });
   }
 
   // Cancel payment

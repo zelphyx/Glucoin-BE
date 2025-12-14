@@ -92,6 +92,7 @@ export class MidtransService implements OnModuleInit {
     serverKey: string,
     signatureKey: string,
   ): boolean {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const crypto = require('crypto');
     const hash = crypto
       .createHash('sha512')
