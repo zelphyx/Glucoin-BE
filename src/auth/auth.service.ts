@@ -285,7 +285,7 @@ export class AuthService {
   private async sendPasswordResetEmail(email: string, fullName: string, resetToken: string): Promise<void> {
     try {
       // Get backend URL from env, fallback to localhost for development
-      const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+      const backendUrl = process.env.BACKEND_URL || 'https://glucoinapi.mentorit.my.id';
       const resetUrl = `${backendUrl}/auth/reset-password?token=${resetToken}`;
 
       console.log('🔄 Attempting to send password reset email...');
