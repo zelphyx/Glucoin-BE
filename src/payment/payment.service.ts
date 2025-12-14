@@ -129,6 +129,13 @@ export class PaymentService {
     const paymentType = notification.payment_type;
     const transactionId = notification.transaction_id;
 
+    console.log('📥 Booking Payment Notification:', {
+      order_id: orderId,
+      transaction_status: transactionStatus,
+      fraud_status: fraudStatus,
+      payment_type: paymentType,
+    });
+
     // Verify signature
     const serverKey = this.configService.get<string>('MIDTRANS_SERVER_KEY') || '';
     const isValid = this.midtransService.verifySignature(
@@ -140,7 +147,12 @@ export class PaymentService {
     );
 
     if (!isValid) {
-      throw new BadRequestException('Invalid signature');
+      console.log('❌ Invalid signature');
+      return {
+        status: 'error',
+        message: 'Invalid signature',
+        order_id: orderId,
+      };
     }
 
     // Determine payment status based on transaction status
@@ -246,7 +258,12 @@ export class PaymentService {
     });
 
     if (!payment) {
-      throw new NotFoundException(`Payment with order_id ${orderId} not found`);
+      console.log('❌ Payment not found for:', orderId);
+      return {
+        status: 'error',
+        message: 'Payment not found',
+        order_id: orderId,
+      };
     }
 
     // Determine booking status
@@ -258,6 +275,8 @@ export class PaymentService {
     } else if (paymentStatus === 'EXPIRED') {
       bookingStatus = 'EXPIRED';
     }
+
+    console.log('📝 Updating payment:', { paymentStatus, bookingStatus });
 
     // Update payment record
     await this.prisma.payment.update({
@@ -285,11 +304,16 @@ export class PaymentService {
       },
     });
 
+    console.log('✅ Booking payment updated successfully');
+
     return {
-      message: 'Booking payment notification handled successfully',
+      status: 'ok',
       order_id: orderId,
+      booking_id: payment.booking_id,
       payment_status: paymentStatus,
       booking_status: bookingStatus,
+      transaction_status: transactionStatus,
+      payment_type: paymentType,
     };
   }
 
@@ -299,53 +323,77 @@ export class PaymentService {
       where: { order_id: orderId },
       include: {
         booking: {
-          select: {
-            id: true,
-            status: true,
-            booking_date: true,
-            start_time: true,
-            end_time: true,
+          include: {
+            doctor: {
+              include: {
+                user: {
+                  select: {
+                    full_name: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
     });
 
     if (!payment) {
-      throw new NotFoundException(`Payment with order_id ${orderId} not found`);
+      return {
+        status: 'not_found',
+        message: 'Payment not found',
+        order_id: orderId,
+      };
     }
 
     // Get latest status from Midtrans
     try {
       const midtransStatus = await this.midtransService.getTransactionStatus(orderId);
       return {
-        payment: {
-          id: payment.id,
-          order_id: payment.order_id,
-          amount: payment.amount,
-          status: payment.status,
-          payment_type: payment.payment_type,
-          transaction_status: midtransStatus.transaction_status,
-          va_number: payment.va_number,
-          bank: payment.bank,
-          expiry_time: payment.expiry_time,
+        status: 'ok',
+        order_id: payment.order_id,
+        booking_id: payment.booking_id,
+        payment_status: payment.status,
+        booking_status: payment.booking.status,
+        transaction_status: midtransStatus.transaction_status,
+        payment_type: payment.payment_type,
+        amount: Number(payment.amount),
+        va_number: payment.va_number,
+        bank: payment.bank,
+        expiry_time: payment.expiry_time,
+        booking: {
+          id: payment.booking.id,
+          booking_date: payment.booking.booking_date,
+          start_time: payment.booking.start_time,
+          end_time: payment.booking.end_time,
+          consultation_type: payment.booking.consultation_type,
+          doctor_name: payment.booking.doctor.user.full_name,
+          specialization: payment.booking.doctor.specialization,
         },
-        booking: payment.booking,
-        midtrans_status: midtransStatus,
       };
     } catch (error) {
       // Return local status if Midtrans call fails
       return {
-        payment: {
-          id: payment.id,
-          order_id: payment.order_id,
-          amount: payment.amount,
-          status: payment.status,
-          payment_type: payment.payment_type,
-          va_number: payment.va_number,
-          bank: payment.bank,
-          expiry_time: payment.expiry_time,
+        status: 'ok',
+        order_id: payment.order_id,
+        booking_id: payment.booking_id,
+        payment_status: payment.status,
+        booking_status: payment.booking.status,
+        transaction_status: payment.transaction_status,
+        payment_type: payment.payment_type,
+        amount: Number(payment.amount),
+        va_number: payment.va_number,
+        bank: payment.bank,
+        expiry_time: payment.expiry_time,
+        booking: {
+          id: payment.booking.id,
+          booking_date: payment.booking.booking_date,
+          start_time: payment.booking.start_time,
+          end_time: payment.booking.end_time,
+          consultation_type: payment.booking.consultation_type,
+          doctor_name: payment.booking.doctor.user.full_name,
+          specialization: payment.booking.doctor.specialization,
         },
-        booking: payment.booking,
       };
     }
   }
@@ -354,13 +402,56 @@ export class PaymentService {
   async getPaymentByBookingId(bookingId: string) {
     const payment = await this.prisma.payment.findUnique({
       where: { booking_id: bookingId },
+      include: {
+        booking: {
+          include: {
+            doctor: {
+              include: {
+                user: {
+                  select: {
+                    full_name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!payment) {
-      throw new NotFoundException(`Payment for booking ${bookingId} not found`);
+      return {
+        status: 'not_found',
+        message: 'Payment not found',
+        booking_id: bookingId,
+      };
     }
 
-    return payment;
+    return {
+      status: 'ok',
+      order_id: payment.order_id,
+      booking_id: payment.booking_id,
+      payment_status: payment.status,
+      booking_status: payment.booking.status,
+      transaction_status: payment.transaction_status,
+      payment_type: payment.payment_type,
+      amount: Number(payment.amount),
+      va_number: payment.va_number,
+      bank: payment.bank,
+      expiry_time: payment.expiry_time,
+      snap_token: payment.snap_token,
+      snap_redirect_url: payment.snap_redirect_url,
+      booking: {
+        id: payment.booking.id,
+        booking_date: payment.booking.booking_date,
+        start_time: payment.booking.start_time,
+        end_time: payment.booking.end_time,
+        consultation_type: payment.booking.consultation_type,
+        consultation_fee: Number(payment.booking.consultation_fee),
+        doctor_name: payment.booking.doctor.user.full_name,
+        specialization: payment.booking.doctor.specialization,
+      },
+    };
   }
 
   // Get all booking payment history for a user

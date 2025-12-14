@@ -461,8 +461,9 @@ export class MarketplaceService {
       });
     }
 
-    // Calculate total with admin fee
-    const total_amount = subtotal + shipping_cost + this.ADMIN_FEE;
+    // Calculate 5% admin fee
+    const admin_fee = Math.round(subtotal * 0.05);
+    const total_amount = subtotal + shipping_cost + admin_fee;
 
     // Generate order number
     const date = new Date();
@@ -480,6 +481,7 @@ export class MarketplaceService {
           shipping_address_id,
           subtotal,
           shipping_cost,
+          discount_amount: admin_fee, // Using discount_amount field for admin fee (negative = fee)
           total_amount,
           courier,
           notes,
@@ -552,13 +554,15 @@ export class MarketplaceService {
       });
     }
 
-    // Add admin fee as item (Rp 2,500)
-    itemDetails.push({
-      id: 'ADMIN_FEE',
-      price: this.ADMIN_FEE,
-      quantity: 1,
-      name: 'Biaya Layanan Aplikasi',
-    });
+    // Add admin fee as item (5% of subtotal)
+    if (Number(order.discount_amount) > 0) {
+      itemDetails.push({
+        id: 'ADMIN_FEE',
+        price: Math.round(Number(order.discount_amount)),
+        quantity: 1,
+        name: 'Biaya Admin (5%)',
+      });
+    }
 
     const snapResponse = await this.midtransService.createTransaction({
       orderId,
@@ -816,6 +820,13 @@ export class MarketplaceService {
   async handlePaymentNotification(notification: any) {
     const { order_id, transaction_status, fraud_status, payment_type } = notification;
 
+    console.log('📥 Marketplace Payment Notification:', {
+      order_id,
+      transaction_status,
+      fraud_status,
+      payment_type,
+    });
+
     // Find payment by order_id
     const payment = await this.prisma.orderPayment.findUnique({
       where: { order_payment_id: order_id },
@@ -823,8 +834,12 @@ export class MarketplaceService {
     });
 
     if (!payment) {
-      console.log('Order payment not found for:', order_id);
-      return;
+      console.log('❌ Order payment not found for:', order_id);
+      return { 
+        status: 'error', 
+        message: 'Payment not found',
+        order_id 
+      };
     }
 
     let paymentStatus: string = 'PENDING';
@@ -841,7 +856,12 @@ export class MarketplaceService {
     } else if (transaction_status === 'expire') {
       paymentStatus = 'EXPIRED';
       orderStatus = 'CANCELLED';
+    } else if (transaction_status === 'pending') {
+      paymentStatus = 'PENDING';
+      orderStatus = 'PENDING_PAYMENT';
     }
+
+    console.log('📝 Updating payment:', { paymentStatus, orderStatus });
 
     await this.prisma.$transaction(async (tx) => {
       await tx.orderPayment.update({
@@ -883,6 +903,53 @@ export class MarketplaceService {
         }
       }
     });
+
+    console.log('✅ Payment updated successfully');
+
+    return {
+      status: 'ok',
+      order_id: order_id,
+      order_number: payment.order.order_number,
+      payment_status: paymentStatus,
+      order_status: orderStatus,
+      transaction_status,
+    };
+  }
+
+  // Get payment status by Midtrans order_id (for frontend after redirect)
+  async getPaymentStatusByOrderId(orderId: string) {
+    const payment = await this.prisma.orderPayment.findUnique({
+      where: { order_payment_id: orderId },
+      include: { 
+        order: {
+          include: {
+            items: true,
+            shipping_address: true,
+          }
+        } 
+      },
+    });
+
+    if (!payment) {
+      return {
+        status: 'not_found',
+        message: 'Payment not found',
+        order_id: orderId,
+      };
+    }
+
+    return {
+      status: 'ok',
+      order_id: orderId,
+      order_number: payment.order.order_number,
+      payment_status: payment.status,
+      order_status: payment.order.status,
+      transaction_status: payment.transaction_status,
+      payment_type: payment.payment_type,
+      amount: Number(payment.amount),
+      paid_at: payment.order.paid_at,
+      order: this.formatOrder(payment.order),
+    };
   }
 
   // ============= HELPER METHODS =============

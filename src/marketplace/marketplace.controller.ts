@@ -205,4 +205,10 @@ export class MarketplaceController {
   handlePaymentNotification(@Body() notification: any) {
     return this.marketplaceService.handlePaymentNotification(notification);
   }
+
+  // Get order status by order_id (for frontend after redirect)
+  @Get('payment/status/:orderId')
+  getPaymentStatus(@Param('orderId') orderId: string) {
+    return this.marketplaceService.getPaymentStatusByOrderId(orderId);
+  }
 }
