@@ -142,6 +142,102 @@ export class PaymentService {
       throw new BadRequestException('Invalid signature');
     }
 
+    // Determine payment status based on transaction status
+    let paymentStatus: 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED' | 'REFUNDED' = 'PENDING';
+
+    if (transactionStatus === 'capture') {
+      paymentStatus = fraudStatus === 'accept' ? 'PAID' : 'PENDING';
+    } else if (transactionStatus === 'settlement') {
+      paymentStatus = 'PAID';
+    } else if (transactionStatus === 'pending') {
+      paymentStatus = 'PENDING';
+    } else if (transactionStatus === 'deny' || transactionStatus === 'cancel') {
+      paymentStatus = 'FAILED';
+    } else if (transactionStatus === 'expire') {
+      paymentStatus = 'EXPIRED';
+    } else if (transactionStatus === 'refund' || transactionStatus === 'partial_refund') {
+      paymentStatus = 'REFUNDED';
+    }
+
+    // Check if this is a marketplace order payment (order_id contains '-MKT-')
+    if (orderId.includes('-MKT-')) {
+      return this.handleMarketplacePaymentNotification(orderId, paymentStatus, paymentType, transactionId, transactionStatus, notification);
+    }
+
+    // Otherwise handle as booking payment
+    return this.handleBookingPaymentNotification(orderId, paymentStatus, paymentType, transactionId, transactionStatus, notification);
+  }
+
+  // Handle marketplace order payment notification
+  private async handleMarketplacePaymentNotification(
+    orderId: string,
+    paymentStatus: 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED' | 'REFUNDED',
+    paymentType: string,
+    transactionId: string,
+    transactionStatus: string,
+    notification: any,
+  ) {
+    // Find order payment by order_payment_id
+    const orderPayment = await this.prisma.orderPayment.findUnique({
+      where: { order_payment_id: orderId },
+      include: { order: true },
+    });
+
+    if (!orderPayment) {
+      throw new NotFoundException(`Order payment with order_id ${orderId} not found`);
+    }
+
+    // Determine order status based on payment status
+    let orderStatus: 'PENDING_PAYMENT' | 'PROCESSING' | 'CANCELLED' = 'PENDING_PAYMENT';
+    if (paymentStatus === 'PAID') {
+      orderStatus = 'PROCESSING';
+    } else if (paymentStatus === 'FAILED' || paymentStatus === 'EXPIRED') {
+      orderStatus = 'CANCELLED';
+    }
+
+    // Update order payment record
+    await this.prisma.orderPayment.update({
+      where: { id: orderPayment.id },
+      data: {
+        payment_type: paymentType,
+        transaction_id: transactionId,
+        transaction_status: transactionStatus,
+        transaction_time: notification.transaction_time
+          ? new Date(notification.transaction_time)
+          : null,
+        va_number: notification.va_numbers?.[0]?.va_number || null,
+        bank: notification.va_numbers?.[0]?.bank || notification.bank || null,
+        status: paymentStatus,
+        raw_response: JSON.stringify(notification),
+      },
+    });
+
+    // Update order status
+    await this.prisma.order.update({
+      where: { id: orderPayment.order_id },
+      data: {
+        status: orderStatus,
+        payment_status: paymentStatus,
+      },
+    });
+
+    return {
+      message: 'Marketplace payment notification handled successfully',
+      order_id: orderId,
+      payment_status: paymentStatus,
+      order_status: orderStatus,
+    };
+  }
+
+  // Handle booking payment notification
+  private async handleBookingPaymentNotification(
+    orderId: string,
+    paymentStatus: 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED' | 'REFUNDED',
+    paymentType: string,
+    transactionId: string,
+    transactionStatus: string,
+    notification: any,
+  ) {
     // Find payment by order_id
     const payment = await this.prisma.payment.findUnique({
       where: { order_id: orderId },
@@ -152,36 +248,18 @@ export class PaymentService {
       throw new NotFoundException(`Payment with order_id ${orderId} not found`);
     }
 
-    // Determine payment status
-    let paymentStatus: 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED' | 'REFUNDED' = 'PENDING';
+    // Determine booking status
     let bookingStatus: 'PENDING_PAYMENT' | 'PENDING' | 'CANCELLED' | 'EXPIRED' = 'PENDING_PAYMENT';
-
-    if (transactionStatus === 'capture') {
-      if (fraudStatus === 'accept') {
-        paymentStatus = 'PAID';
-        bookingStatus = 'PENDING';
-      } else if (fraudStatus === 'challenge') {
-        paymentStatus = 'PENDING';
-        bookingStatus = 'PENDING_PAYMENT';
-      }
-    } else if (transactionStatus === 'settlement') {
-      paymentStatus = 'PAID';
+    if (paymentStatus === 'PAID') {
       bookingStatus = 'PENDING';
-    } else if (transactionStatus === 'pending') {
-      paymentStatus = 'PENDING';
-      bookingStatus = 'PENDING_PAYMENT';
-    } else if (transactionStatus === 'deny' || transactionStatus === 'cancel') {
-      paymentStatus = 'FAILED';
+    } else if (paymentStatus === 'FAILED') {
       bookingStatus = 'CANCELLED';
-    } else if (transactionStatus === 'expire') {
-      paymentStatus = 'EXPIRED';
+    } else if (paymentStatus === 'EXPIRED') {
       bookingStatus = 'EXPIRED';
-    } else if (transactionStatus === 'refund' || transactionStatus === 'partial_refund') {
-      paymentStatus = 'REFUNDED';
     }
 
     // Update payment record
-    const updatedPayment = await this.prisma.payment.update({
+    await this.prisma.payment.update({
       where: { id: payment.id },
       data: {
         payment_type: paymentType,
@@ -207,7 +285,7 @@ export class PaymentService {
     });
 
     return {
-      message: 'Notification handled successfully',
+      message: 'Booking payment notification handled successfully',
       order_id: orderId,
       payment_status: paymentStatus,
       booking_status: bookingStatus,

@@ -405,6 +405,9 @@ export class MarketplaceService {
 
   // ============= ORDER METHODS =============
 
+  // Admin fee constant - Rp 2,500
+  private readonly ADMIN_FEE = 2500;
+
   async createOrder(userId: string, createOrderDto: CreateOrderDto) {
     const { shipping_address_id, shipping_cost, courier, notes } = createOrderDto;
 
@@ -458,7 +461,8 @@ export class MarketplaceService {
       });
     }
 
-    const total_amount = subtotal + shipping_cost;
+    // Calculate total with admin fee
+    const total_amount = subtotal + shipping_cost + this.ADMIN_FEE;
 
     // Generate order number
     const date = new Date();
@@ -547,6 +551,14 @@ export class MarketplaceService {
         name: `Ongkos Kirim ${order.courier || ''}`.trim(),
       });
     }
+
+    // Add admin fee as item (Rp 2,500)
+    itemDetails.push({
+      id: 'ADMIN_FEE',
+      price: this.ADMIN_FEE,
+      quantity: 1,
+      name: 'Biaya Layanan Aplikasi',
+    });
 
     const snapResponse = await this.midtransService.createTransaction({
       orderId,
@@ -901,7 +913,8 @@ export class MarketplaceService {
       order_number: order.order_number,
       subtotal: Number(order.subtotal),
       shipping_cost: Number(order.shipping_cost),
-      total_amount: Number(order.total_amount),
+      admin_fee: this.ADMIN_FEE,
+      total: Number(order.total_amount),
       status: order.status,
       payment_status: order.payment_status,
       shipping_status: order.shipping_status,
@@ -912,7 +925,7 @@ export class MarketplaceService {
         id: item.id,
         product_id: item.product_id,
         product_name: item.product_name,
-        product_price: Number(item.product_price),
+        price: Number(item.product_price),
         quantity: item.quantity,
         subtotal: Number(item.subtotal),
       })),
@@ -921,7 +934,10 @@ export class MarketplaceService {
         ? {
             order_id: order.payment.order_payment_id,
             status: order.payment.status,
+            method: order.payment.payment_type,
+            snap_token: order.payment.snap_token,
             snap_redirect_url: order.payment.snap_redirect_url,
+            expiry_time: order.payment.expiry_time,
           }
         : null,
       paid_at: order.paid_at,
