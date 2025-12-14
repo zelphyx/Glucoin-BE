@@ -16,9 +16,20 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('GLUCOIN API')
-    .setDescription('Ngentod hahhayy hayukkk')
+    .setDescription('API Documentation for Glucoin - Diabetes Management App')
     .setVersion('1.0')
     .addTag('GLUCOIN')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth',
+    )
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
