@@ -49,54 +49,32 @@ export class PaymentController {
   // Get all booking payment history for current user
   @Get('history/booking')
   @UseGuards(JwtAuthGuard)
-  @Roles('ADMIN')
   getBookingPaymentHistory(
     @CurrentUser() user: any,
     @Query('status') status?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
   ) {
-    return this.paymentService.getBookingPaymentHistory(user.id, {
-      status,
-      page: page ? Number(page) : 1,
-      limit: limit ? Number(limit) : 10,
-    });
+    return this.paymentService.getBookingPaymentHistory(user.id, status);
   }
 
   // Get all marketplace payment history for current user
   @Get('history/marketplace')
   @UseGuards(JwtAuthGuard)
-  @Roles('ADMIN')
   getMarketplacePaymentHistory(
     @CurrentUser() user: any,
     @Query('status') status?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
   ) {
-    return this.paymentService.getMarketplacePaymentHistory(user.id, {
-      status,
-      page: page ? Number(page) : 1,
-      limit: limit ? Number(limit) : 10,
-    });
+    return this.paymentService.getMarketplacePaymentHistory(user.id, status);
   }
 
   // Get all payment history (booking + marketplace)
   @Get('history')
   @UseGuards(JwtAuthGuard)
-  @Roles('ADMIN')
   getAllPaymentHistory(
     @CurrentUser() user: any,
     @Query('type') type?: 'booking' | 'marketplace' | 'all',
     @Query('status') status?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
   ) {
-    return this.paymentService.getAllPaymentHistory(user.id, {
-      type,
-      status,
-      page: page ? Number(page) : 1,
-      limit: limit ? Number(limit) : 10,
-    });
+    return this.paymentService.getAllPaymentHistory(user.id, type, status);
   }
 
   // Cancel payment
