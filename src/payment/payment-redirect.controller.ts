@@ -1,5 +1,5 @@
 import { Controller, Get, Res, Query } from '@nestjs/common';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 
 /**
@@ -22,8 +22,7 @@ export class PaymentRedirectController {
   @Get('finish')
   paymentFinish(@Query() query: any, @Res() res: Response) {
     const orderId = query.order_id || '';
-    const transactionStatus = query.transaction_status || 'settlement';
-    const statusCode = query.status_code || '200';
+    // transactionStatus and statusCode available in query if needed for logging
 
     // Extract the order UUID from the Midtrans order_id
     // Format: GLUCOIN-MKT-{uuid first 8 chars}-{timestamp} or GLUCOIN-{bookingId first 8 chars}-{timestamp}
@@ -48,7 +47,6 @@ export class PaymentRedirectController {
   @Get('pending')
   paymentPending(@Query() query: any, @Res() res: Response) {
     const orderId = query.order_id || '';
-    const transactionStatus = query.transaction_status || 'pending';
 
     let redirectPath = '/belanja';
     
@@ -68,8 +66,6 @@ export class PaymentRedirectController {
   @Get('error')
   paymentError(@Query() query: any, @Res() res: Response) {
     const orderId = query.order_id || '';
-    const transactionStatus = query.transaction_status || 'error';
-    const statusMessage = query.status_message || '';
 
     let redirectPath = '/belanja';
     
