@@ -11,6 +11,7 @@ async function bootstrap() {
       'http://localhost:3001',
       'https://glucoin.vercel.app',
       'https://glucoin.mentorit.my.id',
+      'https://glucoinapi.mentorit.my.id',
       process.env.FRONTEND_URL,
     ].filter(Boolean) as string[],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
