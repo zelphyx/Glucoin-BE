@@ -49,6 +49,7 @@ export class PaymentController {
   // Get all booking payment history for current user
   @Get('history/booking')
   @UseGuards(JwtAuthGuard)
+  @Roles('ADMIN')
   getBookingPaymentHistory(
     @CurrentUser() user: any,
     @Query('status') status?: string,
@@ -65,6 +66,7 @@ export class PaymentController {
   // Get all marketplace payment history for current user
   @Get('history/marketplace')
   @UseGuards(JwtAuthGuard)
+  @Roles('ADMIN')
   getMarketplacePaymentHistory(
     @CurrentUser() user: any,
     @Query('status') status?: string,
@@ -81,6 +83,7 @@ export class PaymentController {
   // Get all payment history (booking + marketplace)
   @Get('history')
   @UseGuards(JwtAuthGuard)
+  @Roles('ADMIN')
   getAllPaymentHistory(
     @CurrentUser() user: any,
     @Query('type') type?: 'booking' | 'marketplace' | 'all',
