@@ -193,8 +193,19 @@ HANYA RETURN JSON OBJECT, TANPA MARKDOWN CODE BLOCK ATAU TEKS LAIN.`;
 
       const parsed = JSON.parse(jsonMatch[0]) as LabResultData;
       return parsed;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Error extracting lab results:', error);
+      
+      // Handle quota exceeded error
+      if (error?.status === 429) {
+        throw new Error('Gemini API quota exceeded. Please try again later or contact support.');
+      }
+      
+      // Handle API key error
+      if (error?.status === 400 || error?.status === 403) {
+        throw new Error('Gemini API key is invalid or not authorized.');
+      }
+      
       throw error;
     }
   }
