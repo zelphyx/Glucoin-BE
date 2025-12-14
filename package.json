@@ -31,6 +31,7 @@
     "scrape:facilities": "ts-node scripts/scrape-osm.ts --all"
   },
   "dependencies": {
+    "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
@@ -43,10 +44,12 @@
     "@nestjs/websockets": "^11.1.9",
     "@prisma/adapter-pg": "^7.0.1",
     "@prisma/client": "^7.0.1",
+    "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
     "dotenv": "^17.2.3",
+    "form-data": "^4.0.5",
     "midtrans-client": "^1.4.3",
     "nodemailer": "^7.0.11",
     "passport": "^0.7.0",
@@ -66,6 +69,7 @@
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
+    "@types/multer": "^2.0.0",
     "@types/node": "^22.19.1",
     "@types/nodemailer": "^7.0.4",
     "@types/passport-jwt": "^4.0.1",

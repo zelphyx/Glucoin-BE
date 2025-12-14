@@ -13,6 +13,7 @@ import { MarketplaceModule } from './marketplace/marketplace.module';
 import { FacilityModule } from './facility/facility.module';
 import { ReminderModule } from './reminder/reminder.module';
 import { ChatModule } from './chat/chat.module';
+import { DetectionModule } from './detection/detection.module';
 import { PrismaService } from './prisma.service';
 
 @Module({
@@ -27,6 +28,7 @@ import { PrismaService } from './prisma.service';
     FacilityModule,
     ReminderModule,
     ChatModule,
+    DetectionModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

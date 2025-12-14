@@ -242,7 +242,7 @@ export class ChatService {
   }
 
   // Get room by booking ID
-  async getRoomByBooking(bookingId: string) {
+  getRoomByBooking(bookingId: string) {
     return this.prisma.chatRoom.findUnique({
       where: { booking_id: bookingId },
     });

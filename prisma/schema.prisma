@@ -55,6 +55,7 @@ model User {
   glucose_logs             GlucoseLog[]
   reminders                Reminder[]
   medication_logs          MedicationLog[]
+  detection_history        DetectionHistory[]
 }
 
 model Doctor {
@@ -535,4 +536,60 @@ enum MessageType {
   TEXT
   IMAGE
   FILE
+}
+
+// ============= DIABETES DETECTION HISTORY =============
+
+// History deteksi diabetes
+model DetectionHistory {
+  id                    String          @id @default(uuid())
+  user_id               String
+  
+  // Detection type: IMAGE, QUESTIONNAIRE, COMBINED, FULL_SCREENING
+  detection_type        DetectionType
+  
+  // Image detection results
+  tongue_image_url      String?         // URL gambar lidah yang di-upload
+  nail_image_url        String?         // URL gambar kuku yang di-upload
+  tongue_valid          Boolean?
+  tongue_probability    Float?
+  nail_valid            Boolean?
+  nail_probability      Float?
+  image_score           Float?          // Combined image score
+  
+  // Questionnaire data (stored as JSON)
+  questionnaire_data    Json?           // Data kuesioner yang diisi
+  questionnaire_score   Float?
+  
+  // Final results
+  final_score           Float           // Skor akhir (0-1)
+  risk_level            RiskLevel       // tidak, rendah, sedang, tinggi
+  prediction            String          // DIABETES atau NON_DIABETES
+  interpretation        String          // Interpretasi hasil
+  recommendations       String[]        // Array rekomendasi
+  
+  // AI API response (for debugging/reference)
+  raw_response          Json?           // Raw response dari AI API
+  
+  created_at            DateTime        @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([created_at])
+  @@index([risk_level])
+}
+
+enum DetectionType {
+  IMAGE           // Hanya gambar (lidah/kuku)
+  QUESTIONNAIRE   // Hanya kuesioner
+  COMBINED        // Gambar + kuesioner (POST /detect/combined)
+  FULL_SCREENING  // Full screening (lidah + kuku + kuesioner)
+}
+
+enum RiskLevel {
+  TIDAK           // tidak berisiko
+  RENDAH          // rendah
+  SEDANG          // sedang
+  TINGGI          // tinggi
 }

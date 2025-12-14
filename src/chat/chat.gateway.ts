@@ -42,7 +42,7 @@ export class ChatGateway
     console.log('🔌 Chat WebSocket Gateway initialized');
   }
 
-  async handleConnection(client: AuthenticatedSocket) {
+  handleConnection(client: AuthenticatedSocket) {
     try {
       // Get token from handshake
       const token =
