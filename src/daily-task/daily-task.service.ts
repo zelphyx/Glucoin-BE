@@ -4,6 +4,13 @@ import { FonnteService } from '../reminder/fonnte.service';
 import { Cron } from '@nestjs/schedule';
 import { GlucoseCategory } from '@glucoin/prisma';
 import {
+  getTodayWIB,
+  getTomorrowWIB,
+  getNowWIB,
+  getDayOfWeekWIB,
+  formatDateWIB,
+} from '../common/timezone.util';
+import {
   CreateTaskTemplateDto,
   UpdateTaskTemplateDto,
   CompleteTaskDto,
@@ -127,11 +134,8 @@ export class DailyTaskService {
   // ==================== DAILY TASKS ====================
 
   async getTodayTasks(userId: string) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const today = getTodayWIB();
+    const tomorrow = getTomorrowWIB();
 
     // Generate tasks from templates if not exist
     await this.generateDailyTasks(userId, today);
@@ -164,7 +168,7 @@ export class DailyTaskService {
     return {
       status: 'ok',
       data: {
-        date: today.toISOString().split('T')[0],
+        date: formatDateWIB(today),
         progress: {
           total,
           completed,
@@ -184,8 +188,7 @@ export class DailyTaskService {
     nextDay.setDate(nextDay.getDate() + 1);
 
     // Generate tasks if it's today or future
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = getTodayWIB();
 
     if (targetDate >= today) {
       await this.generateDailyTasks(userId, targetDate);
@@ -216,7 +219,7 @@ export class DailyTaskService {
     return {
       status: 'ok',
       data: {
-        date: targetDate.toISOString().split('T')[0],
+        date: formatDateWIB(targetDate),
         progress: {
           total,
           completed,
@@ -382,8 +385,7 @@ export class DailyTaskService {
   // ==================== STATISTICS ====================
 
   async getWeeklyProgress(userId: string) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = getTodayWIB();
 
     const weekAgo = new Date(today);
     weekAgo.setDate(weekAgo.getDate() - 7);
@@ -404,12 +406,12 @@ export class DailyTaskService {
     for (let i = 6; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
-      const dateKey = date.toISOString().split('T')[0];
+      const dateKey = formatDateWIB(date);
       byDate[dateKey] = { total: 0, completed: 0 };
     }
 
     tasks.forEach((task) => {
-      const dateKey = task.task_date.toISOString().split('T')[0];
+      const dateKey = formatDateWIB(task.task_date);
       if (byDate[dateKey]) {
         byDate[dateKey].total++;
         if (task.is_completed) {
@@ -442,8 +444,7 @@ export class DailyTaskService {
   }
 
   async getStreak(userId: string) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = getTodayWIB();
 
     let currentStreak = 0;
     let checkDate = new Date(today);
@@ -611,11 +612,11 @@ export class DailyTaskService {
   // ==================== CRON JOBS ====================
 
   /**
-   * Generate daily tasks at midnight
+   * Generate daily tasks at midnight WIB (17:00 UTC previous day)
    */
-  @Cron('0 0 * * *') // Every day at midnight
+  @Cron('0 17 * * *') // 00:00 WIB = 17:00 UTC
   async generateAllUsersTasks() {
-    this.logger.log('🔄 Generating daily tasks for all users...');
+    this.logger.log('🔄 Generating daily tasks for all users (WIB midnight)...');
 
     const users = await this.prisma.user.findMany({
       where: {
@@ -625,8 +626,7 @@ export class DailyTaskService {
       select: { id: true },
     });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = getTodayWIB();
 
     for (const user of users) {
       try {
@@ -644,12 +644,9 @@ export class DailyTaskService {
    */
   @Cron('*/15 * * * *') // Every 15 minutes
   async sendTaskReminders() {
-    const now = new Date();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const now = getNowWIB();
+    const today = getTodayWIB();
+    const tomorrow = getTomorrowWIB();
 
     // Get tasks that need reminders
     const tasks = await this.prisma.dailyTask.findMany({
@@ -684,7 +681,7 @@ export class DailyTaskService {
       if (!task.user.whatsapp_number || !task.user.is_reminder_active) continue;
       if (task.template && !task.template.send_reminder) continue;
 
-      // Parse scheduled time
+      // Parse scheduled time (WIB)
       const [hours, minutes] = (task.scheduled_time || '00:00').split(':').map(Number);
       const scheduledTime = new Date(today);
       scheduledTime.setHours(hours, minutes, 0, 0);
@@ -718,9 +715,9 @@ export class DailyTaskService {
   }
 
   /**
-   * Send end of day summary at 9 PM
+   * Send end of day summary at 9 PM WIB (14:00 UTC)
    */
-  @Cron('0 21 * * *')
+  @Cron('0 14 * * *') // 21:00 WIB = 14:00 UTC
   async sendDailyTaskSummary() {
     const users = await this.prisma.user.findMany({
       where: {
@@ -730,11 +727,8 @@ export class DailyTaskService {
       },
     });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const today = getTodayWIB();
+    const tomorrow = getTomorrowWIB();
 
     for (const user of users) {
       try {

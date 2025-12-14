@@ -3,6 +3,7 @@ import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { FonnteService } from './fonnte.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { getTodayWIB, getNowWIB } from '../common/timezone.util';
 import {
   CreateReminderDto,
   UpdateReminderDto,
@@ -393,9 +394,9 @@ export class ReminderService {
   }
 
   /**
-   * Send daily summary at 9 PM
+   * Send daily summary at 9 PM WIB (14:00 UTC)
    */
-  @Cron('0 21 * * *') // Every day at 9 PM
+  @Cron('0 14 * * *') // 21:00 WIB = 14:00 UTC
   async sendDailySummary() {
     const users = await this.prisma.user.findMany({
       where: {
@@ -412,8 +413,7 @@ export class ReminderService {
       },
     });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = getTodayWIB();
 
     for (const user of users) {
       try {
@@ -451,8 +451,8 @@ export class ReminderService {
 
   private calculateNextSendTime(time: string, days: string[]): Date {
     const [hours, minutes] = time.split(':').map(Number);
-    const now = new Date();
-    const next = new Date();
+    const now = getNowWIB();
+    const next = new Date(now);
 
     next.setHours(hours, minutes, 0, 0);
 
