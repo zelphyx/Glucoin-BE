@@ -57,6 +57,8 @@ model User {
   medication_logs          MedicationLog[]
   detection_history        DetectionHistory[]
   lab_results              LabResult[]
+  daily_task_templates     DailyTaskTemplate[]
+  daily_tasks              DailyTask[]
 }
 
 model Doctor {
@@ -678,3 +680,97 @@ enum LabStatus {
   RENDAH
   KRITIS
 }
+
+// ============= DAILY TASK SYSTEM =============
+
+// Template task harian untuk user
+model DailyTaskTemplate {
+  id                String          @id @default(uuid())
+  user_id           String
+  
+  title             String          // Judul task
+  description       String?         // Deskripsi
+  task_type         DailyTaskType   // Tipe task
+  
+  // Schedule
+  time              String          // Jam reminder (HH:mm)
+  days              String[]        // Hari aktif: ["MONDAY", "TUESDAY", ...] atau ["EVERYDAY"]
+  
+  // Optional fields for specific task types
+  medication_name   String?         // Nama obat (untuk MEDICATION)
+  dosage            String?         // Dosis (untuk MEDICATION/INSULIN)
+  target_minutes    Int?            // Target durasi (untuk EXERCISE)
+  target_glasses    Int?            // Target gelas air (untuk WATER_INTAKE)
+  
+  // Settings
+  is_active         Boolean         @default(true)
+  send_reminder     Boolean         @default(true)  // Kirim WA reminder atau tidak
+  reminder_minutes_before Int       @default(0)     // Reminder berapa menit sebelumnya
+  
+  icon              String?         // Icon untuk UI
+  color             String?         // Warna untuk UI
+  priority          Int             @default(0)     // Urutan prioritas
+  
+  created_at        DateTime        @default(now())
+  updated_at        DateTime        @updatedAt
+
+  user              User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  daily_tasks       DailyTask[]
+
+  @@index([user_id])
+  @@index([task_type])
+}
+
+// Task harian yang di-generate dari template
+model DailyTask {
+  id                String          @id @default(uuid())
+  user_id           String
+  template_id       String?         // Bisa null untuk task manual
+  
+  title             String
+  description       String?
+  task_type         DailyTaskType
+  task_date         DateTime        // Tanggal task (DATE only, tanpa time)
+  scheduled_time    String?         // Jam terjadwal (HH:mm)
+  
+  // Completion status
+  is_completed      Boolean         @default(false)
+  completed_at      DateTime?
+  
+  // Task-specific data
+  glucose_level     Int?            // Untuk GLUCOSE_CHECK
+  medication_name   String?         // Untuk MEDICATION
+  dosage            String?
+  exercise_minutes  Int?            // Untuk EXERCISE (durasi actual)
+  water_glasses     Int?            // Untuk WATER_INTAKE
+  notes             String?         // Catatan user
+  
+  // Reminder
+  reminder_sent     Boolean         @default(false)
+  reminder_sent_at  DateTime?
+  
+  created_at        DateTime        @default(now())
+  updated_at        DateTime        @updatedAt
+
+  user              User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  template          DailyTaskTemplate? @relation(fields: [template_id], references: [id], onDelete: SetNull)
+
+  @@unique([user_id, template_id, task_date])
+  @@index([user_id, task_date])
+  @@index([task_date])
+  @@index([is_completed])
+}
+
+enum DailyTaskType {
+  GLUCOSE_CHECK       // Cek gula darah
+  MEDICATION          // Minum obat
+  INSULIN             // Suntik insulin
+  EXERCISE            // Olahraga
+  WATER_INTAKE        // Minum air
+  MEAL                // Makan
+  FOOT_CHECK          // Cek kaki (penting untuk diabetesi)
+  BLOOD_PRESSURE      // Cek tekanan darah
+  WEIGHT_CHECK        // Timbang berat badan
+  CUSTOM              // Custom task
+}
+

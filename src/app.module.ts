@@ -15,6 +15,7 @@ import { ReminderModule } from './reminder/reminder.module';
 import { ChatModule } from './chat/chat.module';
 import { DetectionModule } from './detection/detection.module';
 import { LabResultModule } from './lab-result/lab-result.module';
+import { DailyTaskModule } from './daily-task/daily-task.module';
 import { PrismaService } from './prisma.service';
 
 @Module({
@@ -31,6 +32,7 @@ import { PrismaService } from './prisma.service';
     ChatModule,
     DetectionModule,
     LabResultModule,
+    DailyTaskModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
