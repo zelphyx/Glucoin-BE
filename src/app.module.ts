@@ -14,6 +14,7 @@ import { FacilityModule } from './facility/facility.module';
 import { ReminderModule } from './reminder/reminder.module';
 import { ChatModule } from './chat/chat.module';
 import { DetectionModule } from './detection/detection.module';
+import { LabResultModule } from './lab-result/lab-result.module';
 import { PrismaService } from './prisma.service';
 
 @Module({
@@ -29,6 +30,7 @@ import { PrismaService } from './prisma.service';
     ReminderModule,
     ChatModule,
     DetectionModule,
+    LabResultModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

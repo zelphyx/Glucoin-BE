@@ -56,6 +56,7 @@ model User {
   reminders                Reminder[]
   medication_logs          MedicationLog[]
   detection_history        DetectionHistory[]
+  lab_results              LabResult[]
 }
 
 model Doctor {
@@ -592,4 +593,88 @@ enum RiskLevel {
   RENDAH          // rendah
   SEDANG          // sedang
   TINGGI          // tinggi
+}
+
+// ============= LAB RESULT OCR =============
+
+// Hasil ekstraksi lab dari foto
+model LabResult {
+  id                    String          @id @default(uuid())
+  user_id               String
+  
+  // Original image
+  image_url             String          // URL foto hasil lab
+  lab_name              String?         // Nama laboratorium (if detected)
+  test_date             DateTime?       // Tanggal tes (if detected)
+  
+  // Gula Darah
+  gdp                   Float?          // Gula Darah Puasa (mg/dL)
+  gdp_status            LabStatus?      // Normal, Tinggi, Rendah
+  gd2pp                 Float?          // Gula Darah 2 Jam Post Prandial (mg/dL)
+  gd2pp_status          LabStatus?
+  gds                   Float?          // Gula Darah Sewaktu (mg/dL)
+  gds_status            LabStatus?
+  hba1c                 Float?          // HbA1c (%)
+  hba1c_status          LabStatus?
+  
+  // Profil Lipid
+  cholesterol_total     Float?          // Kolesterol Total (mg/dL)
+  cholesterol_status    LabStatus?
+  ldl                   Float?          // LDL (mg/dL)
+  ldl_status            LabStatus?
+  hdl                   Float?          // HDL (mg/dL)
+  hdl_status            LabStatus?
+  triglycerides         Float?          // Trigliserida (mg/dL)
+  triglycerides_status  LabStatus?
+  
+  // Fungsi Ginjal
+  creatinine            Float?          // Kreatinin (mg/dL)
+  creatinine_status     LabStatus?
+  urea                  Float?          // Ureum/BUN (mg/dL)
+  urea_status           LabStatus?
+  uric_acid             Float?          // Asam Urat (mg/dL)
+  uric_acid_status      LabStatus?
+  
+  // Fungsi Hati
+  sgot                  Float?          // SGOT/AST (U/L)
+  sgot_status           LabStatus?
+  sgpt                  Float?          // SGPT/ALT (U/L)
+  sgpt_status           LabStatus?
+  
+  // Darah Lengkap
+  hemoglobin            Float?          // Hemoglobin (g/dL)
+  hemoglobin_status     LabStatus?
+  hematocrit            Float?          // Hematokrit (%)
+  hematocrit_status     LabStatus?
+  leukocytes            Float?          // Leukosit (ribu/uL)
+  leukocytes_status     LabStatus?
+  platelets             Float?          // Trombosit (ribu/uL)
+  platelets_status      LabStatus?
+  erythrocytes          Float?          // Eritrosit (juta/uL)
+  erythrocytes_status   LabStatus?
+  
+  // Lainnya
+  blood_pressure_sys    Int?            // Tekanan darah sistolik
+  blood_pressure_dia    Int?            // Tekanan darah diastolik
+  
+  // Metadata
+  raw_extracted_data    Json?           // Raw OCR result untuk debugging
+  confidence_score      Float?          // Confidence score dari AI
+  notes                 String?         // Catatan tambahan
+  
+  created_at            DateTime        @default(now())
+  updated_at            DateTime        @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([created_at])
+  @@index([test_date])
+}
+
+enum LabStatus {
+  NORMAL
+  TINGGI
+  RENDAH
+  KRITIS
 }

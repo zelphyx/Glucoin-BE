@@ -31,6 +31,7 @@
     "scrape:facilities": "ts-node scripts/scrape-osm.ts --all"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
