@@ -484,3 +484,55 @@ model MedicationLog {
   @@index([user_id])
   @@index([taken_at])
 }
+
+// ============= CHAT MODELS =============
+
+// Chat room antara user dan dokter
+model ChatRoom {
+  id            String        @id @default(uuid())
+  booking_id    String?       @unique // Optional: terkait dengan booking konsultasi
+  user_id       String
+  doctor_id     String
+  is_active     Boolean       @default(true)
+  last_message  String?
+  last_message_at DateTime?
+  created_at    DateTime      @default(now())
+  updated_at    DateTime      @updatedAt
+
+  messages      ChatMessage[]
+
+  @@unique([user_id, doctor_id])
+  @@index([user_id])
+  @@index([doctor_id])
+}
+
+// Pesan dalam chat room
+model ChatMessage {
+  id            String        @id @default(uuid())
+  room_id       String
+  sender_id     String        // User ID pengirim (bisa user atau dokter)
+  sender_type   SenderType    // USER atau DOCTOR
+  message       String
+  message_type  MessageType   @default(TEXT)
+  attachment_url String?      // URL gambar/file jika ada
+  is_read       Boolean       @default(false)
+  read_at       DateTime?
+  created_at    DateTime      @default(now())
+
+  room          ChatRoom      @relation(fields: [room_id], references: [id], onDelete: Cascade)
+
+  @@index([room_id])
+  @@index([sender_id])
+  @@index([created_at])
+}
+
+enum SenderType {
+  USER
+  DOCTOR
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+}
