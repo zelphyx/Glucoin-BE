@@ -61,9 +61,9 @@ export class MidtransService implements OnModuleInit {
       },
       item_details: params.itemDetails,
       callbacks: {
-        finish: this.configService.get('MIDTRANS_FINISH_URL', 'http://localhost:3000/payment/success'),
-        unfinish: this.configService.get('MIDTRANS_UNFINISH_URL', 'http://localhost:3000/payment/pending'),
-        error: this.configService.get('MIDTRANS_ERROR_URL', 'http://localhost:3000/payment/error'),
+        finish: this.configService.get('MIDTRANS_FINISH_URL', 'https://glucoin.mentorit.my.id/payment/success'),
+        unfinish: this.configService.get('MIDTRANS_UNFINISH_URL', 'https://glucoin.mentorit.my.id/payment/pending'),
+        error: this.configService.get('MIDTRANS_ERROR_URL', 'https://glucoin.mentorit.my.id/payment/error'),
       },
     };
 
